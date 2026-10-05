@@ -32,9 +32,16 @@ jobs:
           const SITE='https://fueldrop-au.vercel.app/';
           const sizes=[
             {name:'phone-390',width:390,height:844},
+            {name:'phone-430',width:430,height:932},
+            {name:'mobile-600',width:600,height:900},
             {name:'tablet-768',width:768,height:1024},
+            {name:'tablet-900',width:900,height:1000},
+            {name:'laptop-901',width:901,height:768},
             {name:'laptop-1024',width:1024,height:768},
-            {name:'desktop-1366',width:1366,height:768},
+            {name:'laptop-1099',width:1099,height:800},
+            {name:'desktop-1100',width:1100,height:800},
+            {name:'desktop-1279',width:1279,height:800},
+            {name:'desktop-1280',width:1280,height:800},
             {name:'desktop-1600',width:1600,height:900},
             {name:'desktop-1920',width:1920,height:1080}
           ];
@@ -72,16 +79,12 @@ jobs:
               });
               await page.screenshot({path:`shots/${s.name}-explore.png`,fullPage:false});
               let detail=null;
-              const detailButton=page.getByText('Details',{exact:true}).first();
-              const markerButton=page.locator('.price-marker').first();
-              let opened=false;
-              if(await detailButton.count() && await detailButton.isVisible()){
-                await detailButton.click();
-                opened=true;
-              }else if(await markerButton.count() && await markerButton.isVisible()){
-                await markerButton.click();
-                opened=true;
-              }
+              let opened=await page.evaluate(() => {
+                const el=document.querySelector('.price-marker');
+                if(!el) return false;
+                el.click();
+                return true;
+              });
               if(opened){
                 await page.waitForTimeout(450);
                 detail=await page.evaluate(() => {

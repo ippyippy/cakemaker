@@ -3,9 +3,9 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "au.com.fueldrop.app",
+      "package_name": "au.com.fillmenow.app",
       "sha256_cert_fingerprints": [
-        "92:43:06:81:6F:25:90:CE:FA:42:AF:2A:CF:1A:4A:4A:07:D5:89:A7:75:0B:9E:5B:88:8F:61:C8:14:6F:2B:77"
+        "66:41:D8:BA:D9:42:29:23:1B:85:BA:7B:6E:B7:9B:8C:0B:DE:B3:7B:B5:D6:A7:8C:3E:EF:59:48:94:D6:13:22"
       ]
     }
   }

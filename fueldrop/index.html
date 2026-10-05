@@ -488,6 +488,70 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
  .price-marker.zoom-locked .brand-mark{width:18px!important;height:18px!important;flex-basis:18px!important}
 }
 
+
+/* Compact next-best stops: no nested sidebar scroller */
+.decision-column .alternatives{
+ flex:none!important;
+ min-height:0!important;
+}
+.decision-column .alt-list{
+ max-height:none!important;
+ overflow:visible!important;
+ flex:none!important;
+}
+.compact-alt{
+ width:100%;
+ grid-template-columns:24px minmax(0,1fr) auto!important;
+ gap:8px!important;
+ min-height:48px;
+ padding:8px 10px!important;
+ border:0;
+ border-bottom:1px solid #edf0ec;
+ background:#fff;
+ color:var(--ink);
+ text-align:left;
+ cursor:pointer;
+}
+.compact-alt:hover{background:#f7f9f5}
+.compact-alt .rank{
+ width:24px!important;
+ height:24px!important;
+ font-size:7px!important;
+}
+.compact-alt-main{min-width:0}
+.compact-alt-main b{
+ display:block;
+ white-space:nowrap;
+ overflow:hidden;
+ text-overflow:ellipsis;
+ font-size:8.5px!important;
+}
+.compact-alt-main span{
+ display:block;
+ margin-top:2px;
+ font-size:7px!important;
+ white-space:nowrap;
+ overflow:hidden;
+ text-overflow:ellipsis;
+}
+.compact-alt .alt-price b{font-size:11.5px!important}
+.compact-alt .alt-price span{font-size:6.5px!important}
+.alt-all{
+ width:100%;
+ border:0;
+ border-top:0;
+ background:#f4f7f1;
+ color:#315f24;
+ padding:9px 10px;
+ font-size:7.5px;
+ font-weight:950;
+ cursor:pointer;
+}
+.alt-all:hover{background:#eaf3e4}
+@media(min-width:901px) and (max-width:1179px){
+ .decision-column .alternatives{display:none!important}
+}
+
 </style>
 </head>
 <body>
@@ -516,7 +580,7 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
     </div>
     <article class="best-card"><div class="best-badge">BEST STOP</div><div class="eyebrow">Best value nearby</div><div id="desktopBest"><div class="reason" style="margin-top:16px">Choose your area to compare nearby fuel.</div></div></article>
     <div class="mini-stats"><div class="mini-stat"><span>CHEAPEST</span><b id="statCheapest">—</b></div><div class="mini-stat"><span>NEAREST</span><b id="statNearest">—</b></div><div class="mini-stat"><span>IN RANGE</span><b id="statCount">0</b></div></div>
-    <div class="alternatives"><div class="alt-head"><b>Other good stops</b><button id="refreshBtn">Refresh</button></div><div class="alt-list" id="desktopAlts"></div></div>
+    <div class="alternatives"><div class="alt-head"><b>Next best stops</b><button id="refreshBtn">Refresh</button></div><div class="alt-list" id="desktopAlts"></div></div>
    </aside>
    <div class="map-shell">
     <div id="exploreMap" class="map"></div><div id="mapNotice" class="map-notice" role="status"></div>
@@ -698,11 +762,11 @@ function toast(t){$("toast").textContent=t;$("toast").classList.add("show");setT
 function fuels(){return FUELS[prefs.state]||FUELS.NSW} function syncFuel(){var fs=fuels();if(fs.indexOf(prefs.fuel)<0)prefs.fuel=fs[0];[$("fuelSelect"),$("modalFuel"),$("mobileFuelSelect")].forEach(function(s){if(!s)return;s.innerHTML=fs.map(function(f){return "<option>"+f+"</option>"}).join("");s.value=prefs.fuel});if($("mobileRadiusSelect"))$("mobileRadiusSelect").value=String(prefs.radius);syncVehicleLabel()} function syncVehicleLabel(){var n={car:"Car",ute:"Ute / van",truck:"Truck",heavy:"Heavy truck",custom:"Custom"};if($("mobileVehicleLabel"))$("mobileVehicleLabel").textContent=n[prefs.vehicle]||"Custom"}
 function areaText(){var t=loc?(loc.label||"Selected area"):"Choose location";if($("areaLabel"))$("areaLabel").textContent=t;if($("topArea"))$("topArea").textContent=t;if($("mapArea"))$("mapArea").textContent=t;summary=null;if(!loc||!rows.length){ranked=[];if(!loc&&typeof clearMapMarkers==="function")clearMapMarkers();return null}var a=rows.map(function(x){var d=dkm(+loc.lat,+loc.lng,+x.latitude,+x.longitude),p=+x.price;if(!Number.isFinite(d)||!Number.isFinite(p)||d>prefs.radius||p<=0)return null;var road=d*1.18,travel=road*2*prefs.economy/100*(p/100),eff=((prefs.tank*p/100)+travel)/prefs.tank*100;return Object.assign({},x,{distance:d,road:road,travel:travel,effective:eff,etaMin:Math.max(2,Math.round(road/45*60))})}).filter(Boolean);if(!a.length)return null;var ps=a.map(function(x){return x.price}).sort(function(x,y){return x-y}),med=ps[Math.floor(ps.length/2)];a.forEach(function(x){x.saving=prefs.tank*(med-x.price)/100-x.travel});ranked=a.sort(function(x,y){return x.effective-y.effective||x.price-y.price||x.distance-y.distance});var cheapest=a.slice().sort(function(x,y){return x.price-y.price||x.distance-y.distance})[0],nearest=a.slice().sort(function(x,y){return x.distance-y.distance})[0];summary={best:ranked[0],cheapest:cheapest,nearest:nearest,count:a.length,median:med};return summary}
 function bestHtml(b){var diff=Math.max(0,summary.median-b.price);return '<div class="best-price fuel-price">'+brandMark(b.brand,b.station_name)+b.price.toFixed(1)+'<span>¢/L</span></div><h2>'+esc(b.station_name)+'</h2><div class="best-meta">'+esc(prefs.fuel)+' · '+b.distance.toFixed(1)+' km · est. '+b.etaMin+' min</div><div class="saving"><strong>Save about '+cash(b.saving)+'</strong><span>estimated on a '+Math.round(prefs.tank)+' L fill</span></div><div class="reason">'+(diff>0?diff.toFixed(1)+'¢/L below the area median.':"Best estimated trip value in your range.")+'</div><div class="actions"><button class="btn btn-go" onclick="FD.nav(&quot;'+esc(b.station_id)+'&quot;)">GO</button><button class="btn btn-light" onclick="FD.open(&quot;'+esc(b.station_id)+'&quot;)">Details</button><button class="drive-btn" onclick="FD.options()">View all options</button><button class="drive-btn" onclick="FD.drive()">Drive Mode</button></div>'}
-function altRows(limit){return ranked.slice(0,limit).map(function(x,i){return '<div class="alt '+(i===0?"best":"")+'" onclick="FD.open(&quot;'+esc(x.station_id)+'&quot;)"><div class="rank">'+(i+1)+'</div><div><b>'+esc(x.station_name)+'</b><span>'+esc(x.suburb||"")+' · '+x.distance.toFixed(1)+' km · after travel '+x.effective.toFixed(1)+'¢</span></div><div class="alt-price"><b>'+x.price.toFixed(1)+'¢</b><span>'+(x.saving>0?cash(x.saving):"")+'</span></div></div>'}).join("")}
+function altRows(limit,start){start=start||0;return ranked.slice(start,start+limit).map(function(x,i){var rank=start+i+1;return '<button type="button" class="alt compact-alt" onclick="FD.open(&quot;'+esc(x.station_id)+'&quot;)"><div class="rank">'+rank+'</div><div class="compact-alt-main"><b>'+esc(x.station_name)+'</b><span>'+esc(x.suburb||"")+' · '+x.distance.toFixed(1)+' km</span></div><div class="alt-price"><b>'+x.price.toFixed(1)+'¢</b><span>'+(x.saving>0?cash(x.saving):"")+'</span></div></button>'}).join("")}
 function render(){
  $("radiusSelect").value=String(prefs.radius);$("fuelSelect").value=prefs.fuel;summary=areaText();
  if(!summary){$("desktopBest").innerHTML='<div class="reason" style="margin-top:16px">'+(loc?"No stations found in this radius. Try a wider search.":"Choose your area to compare nearby fuel.")+'</div>';$("desktopAlts").innerHTML="";$("statCheapest").textContent="—";$("statNearest").textContent="—";$("statCount").textContent="0";$("sheetMain").innerHTML='<div class="sheet-label">Best stop</div><div class="sheet-station" style="margin-top:8px;color:var(--muted)">'+(loc?"No stations in range.":"Choose your area to compare fuel.")+'</div>';$("sheetAlts").innerHTML="";renderMap();renderDrive();return}
- var b=summary.best;$("desktopBest").innerHTML=bestHtml(b);$("statCheapest").innerHTML='<span class="fuel-price">'+brandMark(summary.cheapest.brand,summary.cheapest.station_name)+summary.cheapest.price.toFixed(1)+'¢</span>';$("statNearest").textContent=summary.nearest.distance.toFixed(1)+" km";$("statCount").textContent=String(summary.count);$("desktopAlts").innerHTML=altRows(8);
+ var b=summary.best;$("desktopBest").innerHTML=bestHtml(b);$("statCheapest").innerHTML='<span class="fuel-price">'+brandMark(summary.cheapest.brand,summary.cheapest.station_name)+summary.cheapest.price.toFixed(1)+'¢</span>';$("statNearest").textContent=summary.nearest.distance.toFixed(1)+" km";$("statCount").textContent=String(summary.count);$("desktopAlts").innerHTML=altRows(2,1)+'<button type="button" class="alt-all" onclick="FD.options()">View all '+summary.count+' options</button>';
  $("sheetMain").innerHTML='<div class="sheet-top"><div><div class="sheet-label">BEST STOP</div><div class="sheet-station">'+esc(b.station_name)+'</div><div class="sheet-price fuel-price">'+brandMark(b.brand,b.station_name)+b.price.toFixed(1)+'<span>¢/L</span></div><div class="sheet-meta">'+b.distance.toFixed(1)+' km · est. '+b.etaMin+' min · '+esc(prefs.fuel)+'</div></div><div class="sheet-save"><b>Save about '+cash(b.saving)+'</b><span>on a '+Math.round(prefs.tank)+' L fill</span></div></div><div class="sheet-actions"><button class="sheet-go" onclick="FD.nav(&quot;'+esc(b.station_id)+'&quot;)">GO  ›</button></div><button class="sheet-options-link" onclick="FD.options()">View all options</button>';
  $("sheetAlts").innerHTML=ranked.slice(0,6).map(function(x,i){return '<div class="sheet-alt" onclick="FD.open(&quot;'+esc(x.station_id)+'&quot;)"><div class="rank">'+(i+1)+'</div><div><b>'+esc(x.station_name)+'</b><span>'+x.distance.toFixed(1)+' km · '+x.effective.toFixed(1)+'¢ after travel</span></div><div class="sheet-alt-price">'+x.price.toFixed(1)+'¢</div></div>'}).join("");renderMap();renderDrive()
 }

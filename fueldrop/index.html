@@ -552,6 +552,79 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
  .decision-column .alternatives{display:none!important}
 }
 
+
+/* Desktop station details reuse the existing decision panel */
+.desktop-station-detail{display:none}
+@media(min-width:1025px){
+ .decision-overview{display:grid;gap:8px}
+ .decision-column.detail-open .decision-overview{display:none}
+ .decision-column.detail-open .desktop-station-detail{
+  display:block;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:5px;
+  overflow:hidden;
+  min-height:360px;
+ }
+ .desktop-detail-head{
+  height:52px;
+  background:#0d1410;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:0 12px;
+  border-bottom:2px solid var(--green);
+ }
+ .desktop-detail-back{
+  border:0;
+  background:transparent;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:22px;
+  line-height:1;
+  padding:6px 2px;
+  cursor:pointer;
+ }
+ .desktop-detail-back span{font-size:8px;font-weight:900;letter-spacing:.2px}
+ .desktop-detail-body{padding:15px}
+ .desktop-detail-body>.best-badge{margin-bottom:10px}
+ #desktopStationTitle{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:0;
+  font-size:17px;
+  line-height:1.15;
+ }
+ #desktopStationTitle .brand-mark{width:38px;height:38px}
+ #desktopStationAddress{
+  margin:7px 0 12px;
+  color:var(--muted);
+  font-size:7.5px;
+  line-height:1.45;
+  text-transform:uppercase;
+ }
+ .desktop-detail-go{
+  width:100%;
+  margin-top:9px;
+  padding:12px;
+  font-size:10px;
+ }
+ .desktop-detail-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+  margin-top:8px;
+ }
+}
+@media(max-width:1024px){
+ .desktop-station-detail{display:none!important}
+}
+
 </style>
 </head>
 <body>
@@ -572,15 +645,34 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
 <section id="page-explore" class="page active">
  <div class="explore">
   <div class="explore-grid">
-   <aside class="decision-column">
-    <div class="controls">
-     <button class="control wide" id="areaControl"><span>AREA</span><b id="areaLabel">Choose location</b></button>
-     <label class="control"><span>FUEL</span><select id="fuelSelect"></select></label>
-     <label class="control"><span>RADIUS</span><select id="radiusSelect"><option value="5">5 km</option><option value="10">10 km</option><option value="20">20 km</option><option value="30">30 km</option><option value="50">50 km</option><option value="100">100 km</option></select></label>
+   <aside class="decision-column" id="decisionColumn">
+    <div class="decision-overview" id="decisionOverview">
+     <div class="controls">
+      <button class="control wide" id="areaControl"><span>AREA</span><b id="areaLabel">Choose location</b></button>
+      <label class="control"><span>FUEL</span><select id="fuelSelect"></select></label>
+      <label class="control"><span>RADIUS</span><select id="radiusSelect"><option value="5">5 km</option><option value="10">10 km</option><option value="20">20 km</option><option value="30">30 km</option><option value="50">50 km</option><option value="100">100 km</option></select></label>
+     </div>
+     <article class="best-card"><div class="best-badge">BEST STOP</div><div class="eyebrow">Best value nearby</div><div id="desktopBest"><div class="reason" style="margin-top:16px">Choose your area to compare nearby fuel.</div></div></article>
+     <div class="mini-stats"><div class="mini-stat"><span>CHEAPEST</span><b id="statCheapest">—</b></div><div class="mini-stat"><span>NEAREST</span><b id="statNearest">—</b></div><div class="mini-stat"><span>IN RANGE</span><b id="statCount">0</b></div></div>
+     <div class="alternatives"><div class="alt-head"><b>Next best stops</b><button id="refreshBtn">Refresh</button></div><div class="alt-list" id="desktopAlts"></div></div>
     </div>
-    <article class="best-card"><div class="best-badge">BEST STOP</div><div class="eyebrow">Best value nearby</div><div id="desktopBest"><div class="reason" style="margin-top:16px">Choose your area to compare nearby fuel.</div></div></article>
-    <div class="mini-stats"><div class="mini-stat"><span>CHEAPEST</span><b id="statCheapest">—</b></div><div class="mini-stat"><span>NEAREST</span><b id="statNearest">—</b></div><div class="mini-stat"><span>IN RANGE</span><b id="statCount">0</b></div></div>
-    <div class="alternatives"><div class="alt-head"><b>Next best stops</b><button id="refreshBtn">Refresh</button></div><div class="alt-list" id="desktopAlts"></div></div>
+    <section class="desktop-station-detail" id="desktopStationDetail" aria-hidden="true">
+     <div class="desktop-detail-head">
+      <button type="button" class="desktop-detail-back" id="desktopDetailBack">‹ <span>Back</span></button>
+      <div class="mini-wordmark">Fuel<span>Drop</span></div>
+     </div>
+     <div class="desktop-detail-body">
+      <div class="best-badge">STATION DETAILS</div>
+      <h2 id="desktopStationTitle">Station</h2>
+      <p id="desktopStationAddress"></p>
+      <div class="station-grid" id="desktopStationMetrics"></div>
+      <button class="btn btn-go desktop-detail-go" id="desktopStationGo">GO ›</button>
+      <div class="desktop-detail-actions">
+       <button class="btn btn-outline" type="button" onclick="FD.options()">View all options</button>
+       <button class="btn btn-soft" id="desktopStationSave" type="button">Save</button>
+      </div>
+     </div>
+    </section>
    </aside>
    <div class="map-shell">
     <div id="exploreMap" class="map"></div><div id="mapNotice" class="map-notice" role="status"></div>
@@ -868,9 +960,30 @@ function gps(){
 async function search(q){if(q.trim().length<2){$("suggestions").innerHTML="";return}try{var r=await fetch(api({api:"geocode",state:prefs.state,q:q.trim()})),j=await r.json(),a=j.candidates||[];$("suggestions").innerHTML=a.map(function(x,i){return '<button class="suggestion" data-i="'+i+'">'+esc(x.label)+'</button>'}).join("");Array.from($("suggestions").children).forEach(function(b){b.onclick=function(){setLoc(a[+b.dataset.i])}})}catch(e){}}
 function find(id){return ranked.find(function(x){return String(x.station_id)===String(id)})||rows.find(function(x){return String(x.station_id)===String(id)})||saved.find(function(x){return String(x.station_id)===String(id)})}
 function navigate(x){if(x)window.open("https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(x.latitude+","+x.longitude),"_blank","noopener")}
-function openStation(id){var x=find(id);if(!x)return;current=x;var d=Number.isFinite(x.distance)?x.distance:(loc?dkm(loc.lat,loc.lng,x.latitude,x.longitude):NaN);$("stationTitle").innerHTML=brandMark(x.brand,x.station_name)+'<span style="margin-left:7px">'+esc(x.station_name)+'</span>';$("stationAddress").textContent=[x.address,x.suburb,x.postcode].filter(Boolean).join(" · ");var m=[];if(Number.isFinite(+x.price))m.push(["Price",(+x.price).toFixed(1)+"¢/L"]);if(Number.isFinite(d))m.push(["Distance",d.toFixed(1)+" km"]);if(Number.isFinite(+x.effective))m.push(["After travel",(+x.effective).toFixed(1)+"¢/L"]);if(Number.isFinite(+x.saving)&&x.saving>0)m.push(["Est. saving",cash(x.saving)]);$("stationMetrics").innerHTML=m.map(function(z){return '<div class="station-mini '+(z[0]==="Price"?"price-mini":"")+'"><span>'+z[0]+'</span><b class="'+(z[0]==="Price"?"fuel-price":"")+'">'+(z[0]==="Price"?brandMark(x.brand,x.station_name):"")+z[1]+'</b></div>'}).join("");$("stationSave").textContent=isSaved(x.station_id)?"Remove saved":"Save";$("stationModal").classList.add("open")}
-function closeStation(){if($("stationModal"))$("stationModal").classList.remove("open");current=null}
-function isSaved(id){return saved.some(function(x){return String(x.station_id)===String(id)})} function toggleSaved(){if(!current)return;var i=saved.findIndex(function(x){return String(x.station_id)===String(current.station_id)});if(i>=0){saved.splice(i,1);toast("Removed")}else{saved.push({station_id:current.station_id,station_name:current.station_name,brand:current.brand||"",suburb:current.suburb,address:current.address,latitude:current.latitude,longitude:current.longitude,state:prefs.state});toast("Saved")}persist();$("stationSave").textContent=isSaved(current.station_id)?"Remove saved":"Save";renderSaved()}
+function stationMetricsHtml(x,d){var m=[];if(Number.isFinite(+x.price))m.push(["Price",(+x.price).toFixed(1)+"¢/L"]);if(Number.isFinite(d))m.push(["Distance",d.toFixed(1)+" km"]);if(Number.isFinite(+x.effective))m.push(["After travel",(+x.effective).toFixed(1)+"¢/L"]);if(Number.isFinite(+x.saving)&&x.saving>0)m.push(["Est. saving",cash(x.saving)]);return m.map(function(z){return '<div class="station-mini '+(z[0]==="Price"?"price-mini":"")+'"><span>'+z[0]+'</span><b class="'+(z[0]==="Price"?"fuel-price":"")+'">'+(z[0]==="Price"?brandMark(x.brand,x.station_name):"")+z[1]+'</b></div>'}).join("")}
+function openStation(id){
+ var x=find(id);if(!x)return;current=x;
+ var d=Number.isFinite(x.distance)?x.distance:(loc?dkm(loc.lat,loc.lng,x.latitude,x.longitude):NaN),addr=[x.address,x.suburb,x.postcode].filter(Boolean).join(" · "),metrics=stationMetricsHtml(x,d),saveText=isSaved(x.station_id)?"Remove saved":"Save";
+ $("stationTitle").innerHTML=brandMark(x.brand,x.station_name)+'<span style="margin-left:7px">'+esc(x.station_name)+'</span>';$("stationAddress").textContent=addr;$("stationMetrics").innerHTML=metrics;$("stationSave").textContent=saveText;
+ if($("desktopStationTitle"))$("desktopStationTitle").innerHTML=brandMark(x.brand,x.station_name)+'<span>'+esc(x.station_name)+'</span>';
+ if($("desktopStationAddress"))$("desktopStationAddress").textContent=addr;
+ if($("desktopStationMetrics"))$("desktopStationMetrics").innerHTML=metrics;
+ if($("desktopStationSave"))$("desktopStationSave").textContent=saveText;
+ if(window.innerWidth>=1025&&$("decisionColumn")){
+  $("decisionColumn").classList.add("detail-open");
+  $("desktopStationDetail").setAttribute("aria-hidden","false");
+  $("stationModal").classList.remove("open");
+ }else{
+  $("stationModal").classList.add("open")
+ }
+}
+function closeStation(){
+ if($("stationModal"))$("stationModal").classList.remove("open");
+ if($("decisionColumn"))$("decisionColumn").classList.remove("detail-open");
+ if($("desktopStationDetail"))$("desktopStationDetail").setAttribute("aria-hidden","true");
+ current=null
+}
+function isSaved(id){return saved.some(function(x){return String(x.station_id)===String(id)})} function toggleSaved(){if(!current)return;var i=saved.findIndex(function(x){return String(x.station_id)===String(current.station_id)});if(i>=0){saved.splice(i,1);toast("Removed")}else{saved.push({station_id:current.station_id,station_name:current.station_name,brand:current.brand||"",suburb:current.suburb,address:current.address,latitude:current.latitude,longitude:current.longitude,state:prefs.state});toast("Saved")}persist();var t=isSaved(current.station_id)?"Remove saved":"Save";$("stationSave").textContent=t;if($("desktopStationSave"))$("desktopStationSave").textContent=t;renderSaved()}
 function renderSaved(){if(!saved.length){$("savedList").innerHTML='<div class="empty">No saved stations yet.<br>Save the places you use most from Explore.</div>';return}$("savedList").innerHTML='<div class="saved-list">'+saved.map(function(x,i){var live=find(x.station_id)||x,p=Number(live.price);return '<div class="saved-card"><div style="display:flex;align-items:center;gap:8px">'+brandMark(live.brand,live.station_name)+'<div><b>'+esc(live.station_name)+'</b><span>'+esc(live.suburb||"")+(Number.isFinite(p)?" · "+p.toFixed(1)+"¢/L":"")+'</span></div></div><button class="btn btn-soft" onclick="FD.navSaved(&quot;'+esc(live.station_id)+'&quot;)">Navigate</button></div>'}).join("")+'</div>'}
 function showPage(p){Array.from(document.querySelectorAll(".page")).forEach(function(x){x.classList.remove("active")});var pg=$("page-"+p);if(!pg)return;pg.classList.add("active");Array.from(document.querySelectorAll(".nav")).forEach(function(x){x.classList.toggle("active",x.dataset.page===(p==="options"?"explore":p))});if(p==="explore")setTimeout(renderMap,70);if(p==="options")renderOptions();if(p==="saved")renderSaved();if(p==="alerts")alertUI();if(p==="more")moreUI();window.scrollTo(0,0)}
 function renderOptions(){syncFuel();if($("optionsFuel")){$("optionsFuel").innerHTML=fuels().map(function(f){return "<option>"+f+"</option>"}).join("");$("optionsFuel").value=prefs.fuel}$("optionsRadius").value=String(prefs.radius);$("optionsVehicle").textContent=({car:"Car",ute:"Ute / van",truck:"Truck",heavy:"Heavy truck",custom:"Custom"})[prefs.vehicle]||"Custom";if(!ranked.length){$("optionsList").innerHTML='<div class="empty">Choose an area to compare nearby stations.</div>';return}$("optionsList").innerHTML=ranked.slice(0,25).map(function(x,i){return '<div class="option-row '+(i===0?"best":"")+'"><div class="option-num">'+(i+1)+'</div><div class="option-main"><b>'+esc(x.station_name)+'</b><strong>'+x.price.toFixed(1)+'¢</strong><span>'+x.distance.toFixed(1)+' km · est. '+x.etaMin+' min · '+x.effective.toFixed(1)+'¢ after travel</span>'+(x.saving>0?'<span class="option-save">Save about '+cash(x.saving)+'</span>':"")+'</div><button class="option-go" onclick="FD.nav(&quot;'+esc(x.station_id)+'&quot;)">GO</button></div>'}).join("")}
@@ -904,7 +1017,7 @@ if($("mapSettingsBtn"))$("mapSettingsBtn").onclick=function(){showPage("more")};
 Array.from(document.querySelectorAll(".freq-row")).forEach(function(r){r.onclick=function(){prefs.frequency=this.dataset.freq;$("alertFrequency").value=prefs.frequency;persist();alertUI()}});
 Array.from(document.querySelectorAll("[data-open-panel]")).forEach(function(b){b.onclick=function(){openDrawer(this.dataset.openPanel)}});
 Array.from(document.querySelectorAll("[data-info]")).forEach(function(b){b.onclick=function(){showInfo(this.dataset.info)}});
-if($("drawerBack"))$("drawerBack").onclick=closeDrawer;[$("areaControl"),$("topArea"),$("mapArea")].filter(Boolean).forEach(function(b){b.onclick=openArea});[$("gpsBtn"),$("areaGps")].filter(Boolean).forEach(function(b){b.onclick=gps});$("areaClose").onclick=closeArea;$("areaModal").onclick=function(e){if(e.target===e.currentTarget)closeArea()};$("stateSelect").onchange=function(){prefs.state=this.value;prefs.fuel=FUELS[prefs.state][0];loc=null;persist();syncFuel();loadRegions();render()};$("modalFuel").onchange=function(){prefs.fuel=this.value;persist();syncFuel()};$("fuelSelect").onchange=function(){prefs.fuel=this.value;if($("mobileFuelSelect"))$("mobileFuelSelect").value=prefs.fuel;persist();load();syncSub()};$("radiusSelect").onchange=function(){prefs.radius=+this.value;if($("mobileRadiusSelect"))$("mobileRadiusSelect").value=String(prefs.radius);persist();load();syncSub()};if($("mobileFuelSelect"))$("mobileFuelSelect").onchange=function(){prefs.fuel=this.value;$("fuelSelect").value=prefs.fuel;persist();load();syncSub()};if($("mobileRadiusSelect"))$("mobileRadiusSelect").onchange=function(){prefs.radius=+this.value;$("radiusSelect").value=String(prefs.radius);persist();load();syncSub()};if($("mobileVehicleBtn"))$("mobileVehicleBtn").onclick=function(){showPage("more");setTimeout(function(){var el=document.querySelector(".preset.active");if(el)el.scrollIntoView({block:"center",behavior:"smooth"})},80)};$("refreshBtn").onclick=load;$("locationSearch").oninput=function(){clearTimeout(searchTimer);var q=this.value;searchTimer=setTimeout(function(){search(q)},220)};$("sheetHandle").onclick=function(){$("mobileSheet").classList.toggle("expanded")};$("stationClose").onclick=closeStation;$("stationModal").onclick=function(e){if(e.target===e.currentTarget)closeStation()};$("stationGo").onclick=function(){navigate(current)};$("stationSave").onclick=toggleSaved;Array.from(document.querySelectorAll(".preset")).forEach(function(b){b.onclick=function(){setPreset(b.dataset.preset)}});$("saveVehicle").onclick=function(){prefs.tank=Math.max(20,Math.min(1500,+$("tankInput").value||65));prefs.economy=Math.max(2,Math.min(80,+$("economyInput").value||9));prefs.vehicle="custom";persist();setPreset("custom");render();syncSub();toast("Vehicle saved")};$("alertFrequency").onchange=function(){prefs.frequency=this.value;persist();alertUI()};$("pushSwitch").onclick=togglePush;$("saveAlerts").onclick=saveAlerts;$("testAlert").onclick=testAlert;$("installBtn").onclick=install;$("resetBtn").onclick=async function(){if(!confirm("Reset FuelDrop on this device?"))return;try{var r=await navigator.serviceWorker.getRegistration("/"),s=r?await r.pushManager.getSubscription():null;if(s){var ep=s.endpoint;try{await fetch(api({api:"unsubscribe"}),{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({endpoint:ep})})}catch(e){}try{await s.unsubscribe()}catch(e){}}}finally{["fdPrefs","fdLoc","fdSaved"].forEach(function(k){localStorage.removeItem(k)});location.reload()}};$("exitDrive").onclick=function(){$("driveMode").classList.remove("open");document.body.classList.remove("modal-open")}}
+if($("drawerBack"))$("drawerBack").onclick=closeDrawer;[$("areaControl"),$("topArea"),$("mapArea")].filter(Boolean).forEach(function(b){b.onclick=openArea});[$("gpsBtn"),$("areaGps")].filter(Boolean).forEach(function(b){b.onclick=gps});$("areaClose").onclick=closeArea;$("areaModal").onclick=function(e){if(e.target===e.currentTarget)closeArea()};$("stateSelect").onchange=function(){prefs.state=this.value;prefs.fuel=FUELS[prefs.state][0];loc=null;persist();syncFuel();loadRegions();render()};$("modalFuel").onchange=function(){prefs.fuel=this.value;persist();syncFuel()};$("fuelSelect").onchange=function(){prefs.fuel=this.value;if($("mobileFuelSelect"))$("mobileFuelSelect").value=prefs.fuel;persist();load();syncSub()};$("radiusSelect").onchange=function(){prefs.radius=+this.value;if($("mobileRadiusSelect"))$("mobileRadiusSelect").value=String(prefs.radius);persist();load();syncSub()};if($("mobileFuelSelect"))$("mobileFuelSelect").onchange=function(){prefs.fuel=this.value;$("fuelSelect").value=prefs.fuel;persist();load();syncSub()};if($("mobileRadiusSelect"))$("mobileRadiusSelect").onchange=function(){prefs.radius=+this.value;$("radiusSelect").value=String(prefs.radius);persist();load();syncSub()};if($("mobileVehicleBtn"))$("mobileVehicleBtn").onclick=function(){showPage("more");setTimeout(function(){var el=document.querySelector(".preset.active");if(el)el.scrollIntoView({block:"center",behavior:"smooth"})},80)};$("refreshBtn").onclick=load;$("locationSearch").oninput=function(){clearTimeout(searchTimer);var q=this.value;searchTimer=setTimeout(function(){search(q)},220)};$("sheetHandle").onclick=function(){$("mobileSheet").classList.toggle("expanded")};$("stationClose").onclick=closeStation;$("stationModal").onclick=function(e){if(e.target===e.currentTarget)closeStation()};$("stationGo").onclick=function(){navigate(current)};$("stationSave").onclick=toggleSaved;if($("desktopDetailBack"))$("desktopDetailBack").onclick=closeStation;if($("desktopStationGo"))$("desktopStationGo").onclick=function(){navigate(current)};if($("desktopStationSave"))$("desktopStationSave").onclick=toggleSaved;Array.from(document.querySelectorAll(".preset")).forEach(function(b){b.onclick=function(){setPreset(b.dataset.preset)}});$("saveVehicle").onclick=function(){prefs.tank=Math.max(20,Math.min(1500,+$("tankInput").value||65));prefs.economy=Math.max(2,Math.min(80,+$("economyInput").value||9));prefs.vehicle="custom";persist();setPreset("custom");render();syncSub();toast("Vehicle saved")};$("alertFrequency").onchange=function(){prefs.frequency=this.value;persist();alertUI()};$("pushSwitch").onclick=togglePush;$("saveAlerts").onclick=saveAlerts;$("testAlert").onclick=testAlert;$("installBtn").onclick=install;$("resetBtn").onclick=async function(){if(!confirm("Reset FuelDrop on this device?"))return;try{var r=await navigator.serviceWorker.getRegistration("/"),s=r?await r.pushManager.getSubscription():null;if(s){var ep=s.endpoint;try{await fetch(api({api:"unsubscribe"}),{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({endpoint:ep})})}catch(e){}try{await s.unsubscribe()}catch(e){}}}finally{["fdPrefs","fdLoc","fdSaved"].forEach(function(k){localStorage.removeItem(k)});location.reload()}};$("exitDrive").onclick=function(){$("driveMode").classList.remove("open");document.body.classList.remove("modal-open")}}
 document.addEventListener("keydown",function(e){
  if(e.key!=="Escape")return;
  if($("driveMode").classList.contains("open")){$("driveMode").classList.remove("open");document.body.classList.remove("modal-open");return}

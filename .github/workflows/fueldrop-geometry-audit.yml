@@ -74,10 +74,13 @@ jobs:
                   const word=q('#page-'+name+' .mini-wordmark');
                   const body=q('#page-'+name+' .phone-page-body');
                   const filter=q('#page-'+name+' .filter-strip');
+                  const cs=getComputedStyle(body);
                   return {
                     head:R(head),
                     word:R(word),
                     body:R(body),
+                    bodyPaddingLeft:parseFloat(cs.paddingLeft)||0,
+                    bodyPaddingRight:parseFloat(cs.paddingRight)||0,
                     filter:filter?R(filter):null,
                     filterCells:filter?[...filter.children].map(R):[]
                   }
@@ -94,8 +97,8 @@ jobs:
               for(const [name,g] of Object.entries(pages)){
                 if(!near(g.head.h,56)) failures.push(name+' header height '+g.head.h);
                 if(!near(g.word.cx,width/2,1.25)) failures.push(name+' wordmark off-centre '+g.word.cx);
-                if(!near(g.body.x,12,1)) failures.push(name+' body left gutter '+g.body.x);
-                if(!near(width-(g.body.x+g.body.w),12,1)) failures.push(name+' body right gutter '+(width-(g.body.x+g.body.w)));
+                if(!near(g.bodyPaddingLeft,12,1)) failures.push(name+' body left gutter '+g.bodyPaddingLeft);
+                if(!near(g.bodyPaddingRight,12,1)) failures.push(name+' body right gutter '+g.bodyPaddingRight);
                 if(g.filter){
                   if(!near(g.filter.h,44)) failures.push(name+' filter height '+g.filter.h);
                   const ws=g.filterCells.map(x=>x.w);

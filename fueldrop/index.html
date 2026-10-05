@@ -1310,7 +1310,9 @@ function brandKey(brand,name){
  return "";
 }
 function brandLabel(brand,name){
- var raw=String(brand||name||"").trim();
+ var b=String(brand||"").trim(),n=String(name||"").trim();
+ var generic=/^(independent|independent retailer|unbranded|other|unknown|n\/a|na)$/i;
+ var raw=(!b||generic.test(b))?n:b;
  if(!raw)return "";
  raw=raw.replace(/^(shell\s+reddy\s+express|reddy\s+express)/i,"Reddy")
         .replace(/^metro\s+petroleum/i,"Metro")

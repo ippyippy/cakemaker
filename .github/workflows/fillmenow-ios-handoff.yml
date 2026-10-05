@@ -1,0 +1,32 @@
+name: FillMeNow iOS handoff
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ios-fillmenow/**'
+      - '.github/workflows/fillmenow-ios-handoff.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package iOS source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/fillmenow-ios-handoff
+          mkdir -p /tmp/fillmenow-ios-handoff
+          cp -R ios-fillmenow /tmp/fillmenow-ios-handoff/
+          cp -f fueldrop/privacy.html /tmp/fillmenow-ios-handoff/Privacy-Policy.html
+          cp -f fueldrop/terms.html /tmp/fillmenow-ios-handoff/Terms-and-Disclaimer.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FillMeNow-iOS-App-Store-Handoff
+          path: /tmp/fillmenow-ios-handoff
+          if-no-files-found: error

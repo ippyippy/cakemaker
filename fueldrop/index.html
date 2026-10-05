@@ -686,6 +686,151 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
  body[data-page="options"] .option-go{padding:7px 7px}
 }
 
+
+/* Unified mobile header + filter geometry */
+@media(max-width:900px){
+ .topbar.app-topbar{
+  height:56px!important;
+  min-height:56px;
+ }
+ .quick-filters,
+ .filter-strip{
+  height:44px!important;
+  min-height:44px;
+ }
+ .quick-filters{
+  top:56px!important;
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+ }
+ .quick-filters label,
+ .quick-filters button,
+ .filter-strip label,
+ .filter-strip button{
+  height:44px;
+  min-width:0;
+  margin:0;
+  padding:5px 10px!important;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:1px;
+  border:0;
+  border-right:1px solid var(--line);
+  background:#fff;
+  color:var(--ink);
+  text-align:left;
+  line-height:1;
+ }
+ .quick-filters>*:last-child,
+ .filter-strip>*:last-child{border-right:0}
+ .quick-filters span,
+ .filter-strip span{
+  display:block;
+  width:100%;
+  margin:0 0 1px;
+  font-size:5.75px!important;
+  line-height:1.05;
+  color:#89928b;
+  text-transform:uppercase;
+  font-weight:900;
+  letter-spacing:.42px;
+ }
+ .quick-filters select,
+ .quick-filters b,
+ .filter-strip select,
+ .filter-strip b{
+  width:100%;
+  height:18px;
+  min-height:18px;
+  margin:0;
+  padding:0!important;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:var(--ink);
+  font-size:8.75px!important;
+  font-weight:900;
+  line-height:18px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+ }
+ .filter-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+ .phone-page-head{
+  height:56px!important;
+  min-height:56px;
+  padding:0 12px!important;
+  display:grid!important;
+  grid-template-columns:36px minmax(0,1fr) 36px;
+  align-items:center;
+  justify-items:stretch;
+ }
+ .phone-page-head .mini-wordmark{
+  grid-column:2;
+  justify-self:center;
+  align-self:center;
+  line-height:1;
+  text-align:center;
+  white-space:nowrap;
+ }
+ .phone-page-head .back-btn{
+  grid-column:1;
+  justify-self:start;
+  width:36px!important;
+  height:36px!important;
+  padding:0;
+  display:grid;
+  place-items:center;
+  font-size:25px!important;
+  line-height:1!important;
+ }
+ .phone-page-head .head-spacer{
+  width:36px!important;
+  height:36px;
+ }
+ .phone-page-head>.head-spacer:first-child{grid-column:1}
+ .phone-page-head>.head-spacer:last-child{grid-column:3}
+ body.subpage-mobile .filter-strip{top:56px!important}
+ body.subpage-mobile .phone-page-body{padding-top:14px}
+}
+@media(max-width:600px){
+ .topbar.app-topbar{
+  display:grid;
+  grid-template-columns:76px minmax(0,1fr) 76px;
+  align-items:center;
+  padding:0 8px!important;
+ }
+ .topbar.app-topbar .brand{
+  grid-column:2;
+  justify-self:center;
+  min-width:0;
+ }
+ .topbar.app-topbar .brand-copy small{display:none}
+ .topbar.app-topbar .top-area{
+  grid-column:3;
+  justify-self:end;
+  width:72px;
+  max-width:72px;
+  padding:7px 6px!important;
+  text-align:center;
+ }
+ .quick-filters{top:56px!important}
+}
+@media(max-width:430px){
+ .phone-page-head{height:56px!important;min-height:56px}
+ body.subpage-mobile .filter-strip{top:56px!important;height:44px!important}
+ .quick-filters,.filter-strip{height:44px!important;min-height:44px}
+ .quick-filters label,
+ .quick-filters button,
+ .filter-strip label,
+ .filter-strip button{
+  height:44px;
+  padding:5px 8px!important;
+ }
+}
+
 </style>
 </head>
 <body>
@@ -753,9 +898,9 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
  <div class="phone-page">
   <div class="phone-page-head"><button class="back-btn" id="optionsBack" aria-label="Back">‹</button><div class="mini-wordmark">Fuel<span>Drop</span></div><div class="head-spacer"></div></div>
   <div class="filter-strip options-filter-strip">
-   <label><select id="optionsFuel"></select></label>
-   <label><select id="optionsRadius"><option value="5">5 km</option><option value="10">10 km</option><option value="20">20 km</option><option value="30">30 km</option><option value="50">50 km</option><option value="100">100 km</option></select></label>
-   <button id="optionsVehicle">Car</button>
+   <label><span>Fuel</span><select id="optionsFuel"></select></label>
+   <label><span>Radius</span><select id="optionsRadius"><option value="5">5 km</option><option value="10">10 km</option><option value="20">20 km</option><option value="30">30 km</option><option value="50">50 km</option><option value="100">100 km</option></select></label>
+   <button id="optionsVehicle" type="button"><span>Vehicle</span><b>Car</b></button>
   </div>
   <div class="phone-page-body">
    <h1>Nearby Options</h1>
@@ -1067,7 +1212,7 @@ function showPage(p){
  if(p==="more")moreUI();
  window.scrollTo(0,0)
 }
-function renderOptions(){syncFuel();if($("optionsFuel")){$("optionsFuel").innerHTML=fuels().map(function(f){return "<option>"+f+"</option>"}).join("");$("optionsFuel").value=prefs.fuel}$("optionsRadius").value=String(prefs.radius);$("optionsVehicle").textContent=({car:"Car",ute:"Ute / van",truck:"Truck",heavy:"Heavy truck",custom:"Custom"})[prefs.vehicle]||"Custom";if(!ranked.length){$("optionsList").innerHTML='<div class="empty">Choose an area to compare nearby stations.</div>';return}$("optionsList").innerHTML=ranked.slice(0,25).map(function(x,i){return '<div class="option-row '+(i===0?"best":"")+'"><div class="option-num">'+(i+1)+'</div><div class="option-main"><b>'+esc(x.station_name)+'</b><strong>'+x.price.toFixed(1)+'¢</strong><span>'+x.distance.toFixed(1)+' km · est. '+x.etaMin+' min · '+x.effective.toFixed(1)+'¢ after travel</span>'+(x.saving>0?'<span class="option-save">Save about '+cash(x.saving)+'</span>':"")+'</div><button class="option-go" onclick="FD.nav(&quot;'+esc(x.station_id)+'&quot;)">GO</button></div>'}).join("")}
+function renderOptions(){syncFuel();if($("optionsFuel")){$("optionsFuel").innerHTML=fuels().map(function(f){return "<option>"+f+"</option>"}).join("");$("optionsFuel").value=prefs.fuel}$("optionsRadius").value=String(prefs.radius);var ov=({car:"Car",ute:"Ute / van",truck:"Truck",heavy:"Heavy truck",custom:"Custom"})[prefs.vehicle]||"Custom";$("optionsVehicle").innerHTML='<span>Vehicle</span><b>'+esc(ov)+'</b>';if(!ranked.length){$("optionsList").innerHTML='<div class="empty">Choose an area to compare nearby stations.</div>';return}$("optionsList").innerHTML=ranked.slice(0,25).map(function(x,i){return '<div class="option-row '+(i===0?"best":"")+'"><div class="option-num">'+(i+1)+'</div><div class="option-main"><b>'+esc(x.station_name)+'</b><strong>'+x.price.toFixed(1)+'¢</strong><span>'+x.distance.toFixed(1)+' km · est. '+x.etaMin+' min · '+x.effective.toFixed(1)+'¢ after travel</span>'+(x.saving>0?'<span class="option-save">Save about '+cash(x.saving)+'</span>':"")+'</div><button class="option-go" onclick="FD.nav(&quot;'+esc(x.station_id)+'&quot;)">GO</button></div>'}).join("")}
 function openDrawer(which){var d=$("settingsDrawer");d.classList.add("open");Array.from(document.querySelectorAll(".drawer-panel")).forEach(function(p){p.classList.remove("active")});var p=$("drawer-"+which);if(p)p.classList.add("active");$("drawerTitle").textContent=which==="vehicle"?"Vehicle Settings":which==="fuel"?"Fuel Type":which==="radius"?"Search Radius":"FuelDrop";if(which==="fuel")renderFuelChoices();if(which==="radius")renderRadiusChoices();if(which==="vehicle")moreUI()}
 function closeDrawer(){$("settingsDrawer").classList.remove("open")}
 function renderFuelChoices(){var el=$("fuelChoices");el.innerHTML=fuels().map(function(f){return '<button class="drawer-choice '+(f===prefs.fuel?"active":"")+'" data-fuel="'+esc(f)+'"><span>'+esc(f)+'</span><span>'+(f===prefs.fuel?"✓":"")+'</span></button>'}).join("");Array.from(el.querySelectorAll("[data-fuel]")).forEach(function(b){b.onclick=function(){prefs.fuel=this.dataset.fuel;persist();syncFuel();load();moreUI();closeDrawer()}})}

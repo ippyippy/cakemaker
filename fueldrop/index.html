@@ -328,6 +328,87 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
  .decision-column .alt-list{min-height:0;max-height:none;overflow:auto;flex:1}
 }
 
+
+/* === Responsive optimisation preview v60 === */
+.map-overlay{justify-content:flex-start}
+.map-search{flex:0 1 520px;max-width:min(520px,calc(100% - 52px))}
+.best-card .btn-light{background:#263229;color:#fff;border:1px solid #354238}
+.best-card .btn-light:hover{background:#303d33}
+@media(min-width:1440px){
+ .explore-grid{grid-template-columns:390px minmax(0,1fr);gap:12px}
+ .map-search{max-width:500px}
+ .price-marker,.price-marker.zoom-far,.price-marker.zoom-mid,.price-marker.zoom-near{min-width:96px;min-height:43px;padding:5px 8px;font-size:11.5px}
+ .price-marker .brand-mark{width:28px;height:28px}
+}
+@media(min-width:1180px) and (max-width:1439px){
+ .explore-grid{grid-template-columns:350px minmax(0,1fr);gap:10px}
+ .map-search{max-width:440px}
+ .price-marker,.price-marker.zoom-far,.price-marker.zoom-mid,.price-marker.zoom-near{min-width:88px;min-height:40px;padding:5px 7px;font-size:11px}
+ .price-marker .brand-mark{width:26px;height:26px}
+ #stationModal .modal{width:340px;max-width:340px}
+}
+@media(min-width:1025px) and (max-width:1179px){
+ body{padding-left:70px}
+ .topbar.app-topbar{margin-left:-70px;padding-left:82px}
+ .bottom-nav{width:70px}
+ .explore{padding:9px 10px 10px}
+ .explore-grid{grid-template-columns:320px minmax(0,1fr);gap:8px}
+ .decision-column{top:74px;gap:6px}
+ .best-card{padding:11px}
+ .best-price{font-size:37px}
+ .best-card h2{font-size:13.5px}
+ .saving strong{font-size:15px}
+ .alternatives .alt{padding:7px 8px}
+ .map-search{max-width:380px}
+ .price-marker,.price-marker.zoom-far,.price-marker.zoom-mid,.price-marker.zoom-near{min-width:82px;min-height:38px;padding:4px 6px;font-size:10.5px}
+ .price-marker .brand-mark{width:24px;height:24px}
+ #stationModal{padding-right:10px}
+ #stationModal .modal{width:320px;max-width:320px}
+}
+@media(min-width:901px) and (max-width:1024px){
+ body{padding-left:68px;padding-bottom:0}
+ .topbar.app-topbar{height:60px;margin-left:-68px;padding-left:80px}
+ .bottom-nav{left:0;top:60px;bottom:0;transform:none;width:68px;height:auto;border:0;border-right:1px solid #253027;border-radius:0;background:#101713;padding:12px 5px;grid-template-columns:1fr;grid-template-rows:repeat(4,68px);box-shadow:none}
+ .quick-filters{display:flex;top:60px;height:44px}
+ .explore{padding:0}
+ .explore-grid{display:block}
+ .decision-column{display:none}
+ .map-shell{border:0;padding:0;border-radius:0;min-height:0;box-shadow:none}
+ .map{height:calc(100dvh - 104px);min-height:500px;border-radius:0}
+ .map-overlay{top:10px;left:12px;right:12px}
+ .map-search{display:block;max-width:360px;padding:9px 10px}
+ .map-locate{width:38px;height:38px}
+ .map-tools-bottom{display:flex!important;top:58px!important;right:12px!important;bottom:auto!important;left:auto!important;flex-direction:column;gap:6px;z-index:45}
+ .mobile-sheet{display:block;position:fixed;left:84px;right:auto;bottom:16px;width:min(460px,calc(100vw - 104px));max-height:35dvh;border:1px solid var(--line);border-radius:7px;box-shadow:0 12px 34px rgba(17,23,19,.18);overflow:hidden}
+ .sheet-main{padding:10px 13px 11px}
+ .sheet-price{font-size:29px}
+ .sheet-actions{grid-template-columns:1fr}
+ .sheet-more,.sheet-drive{display:none}
+ .mobile-sheet.expanded .sheet-expand{max-height:0}
+ .price-marker,.price-marker.zoom-far,.price-marker.zoom-mid,.price-marker.zoom-near{min-width:78px;min-height:36px;padding:4px 6px;font-size:10px}
+ .price-marker .brand-mark{width:23px;height:23px}
+ #stationModal{justify-content:flex-end;align-items:center;padding:68px 10px 12px 0;background:transparent;backdrop-filter:none;pointer-events:none}
+ #stationModal .modal{pointer-events:auto;width:330px;max-width:330px;max-height:calc(100dvh - 84px);border-radius:7px;border:1px solid var(--line);box-shadow:0 16px 40px rgba(15,23,17,.24)}
+ #stationModal .best-detail-map{display:none}
+ #stationModal .best-detail-head{height:42px}
+ #stationModal .best-detail-card{padding:11px}
+}
+@media(min-width:601px) and (max-width:900px){
+ .map-search{display:none}
+ .mobile-sheet{width:min(560px,calc(100% - 28px));left:50%;right:auto;transform:translateX(-50%)}
+ .price-marker,.price-marker.zoom-far,.price-marker.zoom-mid,.price-marker.zoom-near{min-width:76px;min-height:35px;padding:4px 6px;font-size:9.5px}
+ .price-marker .brand-mark{width:22px;height:22px}
+}
+@media(max-width:600px){
+ .price-marker,.price-marker.zoom-far,.price-marker.zoom-mid,.price-marker.zoom-near{min-width:68px;min-height:32px;padding:3px 5px;font-size:9px}
+ .price-marker .brand-mark{width:20px;height:20px}
+ .best-detail-card>p{line-height:1.35}
+}
+@media(max-width:430px){
+ .price-marker,.price-marker.zoom-far,.price-marker.zoom-mid,.price-marker.zoom-near{min-width:62px;min-height:30px;font-size:8.5px}
+ .price-marker .brand-mark{width:18px;height:18px}
+}
+
 </style>
 </head>
 <body>
@@ -567,11 +648,35 @@ function ensureMap(){
  })
 }
 function markerProfile(){
- var z=map?map.getZoom():10;
- if(z<=8)return {limit:12,cls:"zoom-far"};
- if(z<=10)return {limit:22,cls:"zoom-mid"};
- if(z<=12)return {limit:40,cls:"zoom-near"};
- return {limit:70,cls:"zoom-near"}
+ var z=map?map.getZoom():10,w=window.innerWidth||1440;
+ if(w<=600){
+  if(z<=8)return {limit:5,cls:"zoom-far"};
+  if(z<=10)return {limit:8,cls:"zoom-mid"};
+  if(z<=12)return {limit:12,cls:"zoom-near"};
+  return {limit:18,cls:"zoom-near"}
+ }
+ if(w<=900){
+  if(z<=8)return {limit:6,cls:"zoom-far"};
+  if(z<=10)return {limit:10,cls:"zoom-mid"};
+  if(z<=12)return {limit:16,cls:"zoom-near"};
+  return {limit:24,cls:"zoom-near"}
+ }
+ if(w<=1179){
+  if(z<=8)return {limit:7,cls:"zoom-far"};
+  if(z<=10)return {limit:12,cls:"zoom-mid"};
+  if(z<=12)return {limit:20,cls:"zoom-near"};
+  return {limit:30,cls:"zoom-near"}
+ }
+ if(w<=1439){
+  if(z<=8)return {limit:8,cls:"zoom-far"};
+  if(z<=10)return {limit:14,cls:"zoom-mid"};
+  if(z<=12)return {limit:24,cls:"zoom-near"};
+  return {limit:36,cls:"zoom-near"}
+ }
+ if(z<=8)return {limit:10,cls:"zoom-far"};
+ if(z<=10)return {limit:18,cls:"zoom-mid"};
+ if(z<=12)return {limit:30,cls:"zoom-near"};
+ return {limit:48,cls:"zoom-near"}
 }
 function clearMapMarkers(){
  if(!Array.isArray(mapLayer))mapLayer=[];
@@ -598,11 +703,23 @@ function renderMapMarkers(){
 }
 function renderMap(){
  ensureMap();if(!map||!loc)return;
- var targetZoom=prefs.radius<=10?13:prefs.radius<=30?11:9;
+ var r=+prefs.radius||20,w=window.innerWidth||1440;
+ var targetZoom=r<=5?13.4:r<=10?12.6:r<=20?11.4:r<=30?10.8:r<=50?9.7:8.6;
+ if(w<=900)targetZoom-=.2;
+ if(w<=600)targetZoom-=.15;
  map.jumpTo({center:[+loc.lng,+loc.lat],zoom:targetZoom});
  renderMapMarkers();
  setTimeout(function(){try{map.resize()}catch(e){}},80)
 }
+var viewportTimer=null;
+function refreshViewportMap(){
+ clearTimeout(viewportTimer);
+ viewportTimer=setTimeout(function(){
+  try{if(map&&loc){map.resize();renderMap();}}catch(e){}
+ },140)
+}
+window.addEventListener("resize",refreshViewportMap);
+window.addEventListener("orientationchange",refreshViewportMap);
 function openArea(){$("stateSelect").value=prefs.state;syncFuel();$("locationSearch").value="";$("suggestions").innerHTML="";$("areaModal").classList.add("open");document.body.classList.add("modal-open");loadRegions()} function closeArea(){$("areaModal").classList.remove("open");if(!$("stationModal").classList.contains("open")&&!$("driveMode").classList.contains("open"))document.body.classList.remove("modal-open")}
 async function loadRegions(){try{var r=await fetch(api({api:"regions",state:prefs.state})),j=await r.json(),a=j.regions||[];$("regions").innerHTML=a.map(function(x,i){return '<button class="region" data-i="'+i+'">'+esc(x.region_name)+'</button>'}).join("");Array.from($("regions").children).forEach(function(b){b.onclick=function(){var x=a[+b.dataset.i];setLoc({lat:x.latitude,lng:x.longitude,label:x.region_name+" "+prefs.state,suburb:x.region_name})}})}catch(e){}}
 function setLoc(x){loc={lat:+x.lat,lng:+x.lng,label:x.label||"Selected area",suburb:x.suburb||null,postcode:x.postcode||null,state:prefs.state};persist();closeArea();load();syncSub()}

@@ -6,7 +6,7 @@
         android:allowBackup="false"
         android:icon="@drawable/ic_launcher"
         android:roundIcon="@drawable/ic_launcher"
-        android:label="FuelDrop"
+        android:label="FillMeNow"
         android:supportsRtl="true"
         android:usesCleartextTraffic="false"
         android:theme="@android:style/Theme.Translucent.NoTitleBar">
@@ -18,7 +18,7 @@
         <activity
             android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
             android:exported="true"
-            android:label="FuelDrop">
+            android:label="FillMeNow">
 
             <meta-data
                 android:name="android.support.customtabs.trusted.DEFAULT_URL"
@@ -47,7 +47,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="https"
-                    android:host="fueldrop-au.vercel.app" />
+                    android:host="fillmenow-au.vercel.app" />
             </intent-filter>
         </activity>
 

@@ -294,6 +294,18 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
  #stationModal .best-detail-map{height:24dvh;min-height:120px}
 }
 
+
+/* Mobile/tablet map controls stay clear of the result sheet */
+@media(max-width:900px){
+ .map-tools-bottom{display:flex!important;top:12px!important;right:12px!important;bottom:auto!important;left:auto!important;flex-direction:column;align-items:flex-end;gap:6px;z-index:45}
+ .map-tools-bottom button{height:34px;min-width:34px}
+}
+@media(max-width:600px){
+ .map-tools-bottom{top:10px!important;right:8px!important}
+ .map-tools-bottom button:first-child{width:34px;padding:0;border-radius:50%}
+ .map-tools-bottom button:first-child span{display:none}
+}
+
 </style>
 </head>
 <body>

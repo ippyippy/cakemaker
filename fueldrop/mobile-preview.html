@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FuelDrop Mobile Preview</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#e9ede8;color:#101713}
+body{display:flex;flex-direction:column;align-items:center;padding:22px}
+.preview-bar{width:min(100%,980px);display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.preview-bar strong{font-size:16px}
+.preview-bar span{font-size:12px;color:#68726a}
+.phone{width:390px;height:844px;max-width:calc(100vw - 24px);border:10px solid #111713;border-radius:30px;background:#111713;box-shadow:0 24px 60px rgba(20,28,22,.22);overflow:hidden;position:relative}
+.phone:before{content:"";position:absolute;z-index:3;top:7px;left:50%;transform:translateX(-50%);width:92px;height:18px;border-radius:20px;background:#111713}
+iframe{width:100%;height:100%;border:0;background:#fff;display:block}
+.note{width:min(390px,calc(100vw - 24px));margin-top:12px;font-size:11px;line-height:1.5;color:#68726a;text-align:center}
+@media(max-width:430px){body{padding:0}.preview-bar,.note{display:none}.phone{width:100vw;max-width:none;height:100dvh;border:0;border-radius:0;box-shadow:none}.phone:before{display:none}}
+</style>
+</head>
+<body>
+<div class="preview-bar">
+ <div><strong>FuelDrop Mobile</strong><br><span>390 × 844 responsive viewport</span></div>
+ <span>Preview only — production unchanged</span>
+</div>
+<div class="phone">
+ <iframe src="/" title="FuelDrop mobile preview"></iframe>
+</div>
+<div class="note">This frame forces the actual FuelDrop preview into a mobile viewport, so you can inspect the real responsive layout from desktop.</div>
+</body>
+</html>

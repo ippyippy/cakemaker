@@ -59,8 +59,17 @@ jobs:
           test -n "$UDID"
 
           xcrun simctl boot "$UDID" || true
-          xcrun simctl bootstatus "$UDID" -b
-          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4
+          READY=0
+          for i in {1..45}; do
+            if xcrun simctl list devices | grep "$UDID" | grep -q '(Booted)'; then
+              READY=1
+              break
+            fi
+            sleep 2
+          done
+          test "$READY" = "1"
+          sleep 5
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4 || true
           xcrun simctl install "$UDID" "$APP"
 
           # Explore: default Sydney data loads from the production backend.

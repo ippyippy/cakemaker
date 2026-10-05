@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace "au.com.fueldrop.app"
+    namespace "au.com.fillmenow.app"
     compileSdk 36
 
     defaultConfig {
-        applicationId "au.com.fueldrop.app"
+        applicationId "au.com.fillmenow.app"
         minSdk 24
         targetSdk 36
         versionCode 1

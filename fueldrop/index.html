@@ -131,6 +131,169 @@ body{background:#eef1ed}
 .map-notice{display:none;position:absolute;z-index:520;left:12px;right:12px;bottom:58px;background:#fff7e8;border:1px solid #e6c47d;color:#5f4a1f;padding:8px 10px;border-radius:4px;font-size:8px;font-weight:750;box-shadow:0 4px 14px rgba(0,0,0,.10)}.map-notice.show{display:block}
 .user-map-marker{width:15px;height:15px;border-radius:50%;background:#5589c1;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.28)}
 .maplibregl-ctrl-bottom-right{z-index:30}.maplibregl-ctrl-attrib{font-size:9px!important;background:rgba(255,255,255,.82)!important}.maplibregl-ctrl-group{border-radius:4px!important;overflow:hidden}.maplibregl-ctrl-group button{width:32px!important;height:32px!important}
+
+/* === Responsive optimisation pass v59 === */
+html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-width:0}
+.maplibregl-map,.maplibregl-canvas-container,.maplibregl-canvas{max-width:100%}
+
+@media(min-width:1280px){
+ .explore{padding:12px 16px 22px}
+ .explore-grid{grid-template-columns:clamp(380px,27vw,420px) minmax(0,1fr);gap:12px}
+ .decision-column{top:78px;max-height:none;overflow:visible;gap:8px}
+ .controls{gap:7px}
+ .best-card{padding:14px}
+ .best-price{font-size:46px}
+ .best-card h2{font-size:16px}
+ .saving{margin-top:12px;padding-top:10px}
+ .saving strong{font-size:18px}
+ .actions{gap:7px;margin-top:12px}
+ .btn,.drive-btn{padding:10px 11px}
+ .alt-list{max-height:230px}
+ .map-shell{min-height:calc(100dvh - 92px)}
+ .map{height:calc(100dvh - 102px);min-height:600px}
+ #stationModal{justify-content:flex-end;align-items:center;padding:78px 18px 18px 0;background:transparent;backdrop-filter:none;pointer-events:none}
+ #stationModal .modal{pointer-events:auto;width:360px;max-width:360px;max-height:calc(100dvh - 108px);border-radius:6px;border:1px solid var(--line);box-shadow:0 18px 48px rgba(15,23,17,.24)}
+ #stationModal .best-detail-map{display:none}
+ #stationModal .best-detail-head{height:46px}
+ #stationModal .best-detail-card{padding:14px}
+ #stationModal .best-detail-card h2{font-size:17px}
+ #stationModal .station-grid{margin:10px 0}
+ #stationModal .best-detail-go{margin-top:8px}
+}
+
+@media(min-width:1100px) and (max-width:1279px){
+ .explore{padding:10px 12px 18px}
+ .explore-grid{grid-template-columns:340px minmax(0,1fr);gap:9px}
+ .decision-column{top:76px;max-height:none;overflow:visible;gap:7px}
+ .control{padding:8px 9px}
+ .best-card{padding:12px}
+ .best-price{font-size:40px;letter-spacing:-2.2px}
+ .best-card h2{font-size:14px;margin-top:10px}
+ .best-meta{font-size:8px}
+ .saving{margin-top:10px;padding-top:9px}
+ .saving strong{font-size:16px}
+ .saving span{font-size:7px}
+ .reason{font-size:7.5px;margin-top:8px}
+ .actions{gap:6px;margin-top:10px}
+ .btn,.drive-btn{padding:9px 8px;font-size:8px}
+ .mini-stat{padding:8px}
+ .alt-list{max-height:170px}
+ .alt{padding:8px 9px}
+ .map-shell{min-height:calc(100dvh - 88px)}
+ .map{height:calc(100dvh - 98px);min-height:540px}
+ .price-marker{min-width:96px;min-height:44px;font-size:12px}
+ #stationModal{justify-content:flex-end;align-items:center;padding:76px 12px 16px 0;background:transparent;backdrop-filter:none;pointer-events:none}
+ #stationModal .modal{pointer-events:auto;width:340px;max-width:340px;max-height:calc(100dvh - 102px);border-radius:6px;border:1px solid var(--line);box-shadow:0 18px 46px rgba(15,23,17,.24)}
+ #stationModal .best-detail-map{display:none}
+ #stationModal .best-detail-head{height:44px}
+ #stationModal .best-detail-card{padding:12px}
+ #stationModal .station-grid{margin:9px 0}
+}
+
+@media(min-width:901px) and (max-width:1099px){
+ body{padding-left:70px}
+ .topbar.app-topbar{margin-left:-70px;padding-left:82px;height:62px}
+ .bottom-nav{width:70px;top:62px;padding:14px 5px;grid-template-rows:repeat(4,70px)}
+ .explore{padding:8px 9px 16px}
+ .explore-grid{grid-template-columns:300px minmax(0,1fr);gap:8px}
+ .decision-column{top:70px;max-height:none;overflow:visible;gap:6px}
+ .control{padding:7px 8px}
+ .control span{font-size:6px}.control b,.control select{font-size:9px}
+ .best-card{padding:11px}
+ .best-badge{margin-bottom:5px}
+ .eyebrow{font-size:6.5px}
+ .best-price{font-size:35px;letter-spacing:-1.8px;margin-top:7px}
+ .best-price span{font-size:11px}
+ .best-card h2{font-size:13px;margin-top:8px}
+ .best-meta{font-size:7.5px}
+ .saving{margin-top:8px;padding-top:8px;gap:7px}
+ .saving strong{font-size:14px}
+ .saving span{font-size:6.5px;max-width:105px}
+ .reason{font-size:7px;margin-top:7px}
+ .actions{gap:5px;margin-top:8px}
+ .btn,.drive-btn{padding:8px 7px;font-size:7.5px}
+ .mini-stat{padding:7px}.mini-stat b{font-size:10px}
+ .alternatives{display:none}
+ .map-shell{min-height:calc(100dvh - 78px)}
+ .map{height:calc(100dvh - 88px);min-height:500px}
+ .map-overlay{left:12px;right:12px;top:12px}
+ .map-search{padding:9px 11px}
+ .map-locate{width:40px;height:40px}
+ .price-marker{min-width:86px;min-height:40px;padding:5px 7px;font-size:11px}
+ .price-marker.zoom-far,.price-marker.zoom-mid,.price-marker.zoom-near{min-width:86px;min-height:40px;font-size:11px;padding:5px 7px}
+ #stationModal{justify-content:flex-end;align-items:center;padding:70px 10px 12px 0;background:transparent;backdrop-filter:none;pointer-events:none}
+ #stationModal .modal{pointer-events:auto;width:320px;max-width:320px;max-height:calc(100dvh - 88px);border-radius:6px;border:1px solid var(--line);box-shadow:0 16px 42px rgba(15,23,17,.24)}
+ #stationModal .best-detail-map{display:none}
+ #stationModal .best-detail-head{height:42px}
+ #stationModal .best-detail-card{padding:11px}
+ #stationModal .best-detail-card h2{font-size:15px}
+ #stationModal .station-grid{margin:8px 0}
+}
+
+@media(min-width:601px) and (max-width:900px){
+ body{padding-bottom:72px}
+ .topbar.app-topbar{height:58px}
+ .quick-filters{display:flex;top:58px;height:44px}
+ .explore{padding:0 0 72px}
+ .map{height:calc(100dvh - 102px);min-height:430px}
+ .map-overlay{top:10px;left:12px;right:12px}
+ .map-tools-bottom{bottom:154px}
+ .mobile-sheet{left:14px;right:14px;bottom:76px;border:1px solid var(--line);border-radius:7px;max-height:38dvh}
+ .sheet-main{padding:11px 14px 12px}
+ .sheet-price{font-size:31px}
+ .sheet-actions{grid-template-columns:1fr}
+ .sheet-more,.sheet-drive{display:none}
+ .bottom-nav{left:50%;transform:translateX(-50%);bottom:8px;width:min(620px,calc(100% - 20px));height:60px;border:1px solid #dfe3de;border-radius:7px}
+ #stationModal{padding:12px 12px 78px;background:rgba(13,20,16,.42);backdrop-filter:blur(3px);align-items:flex-end;justify-content:center;pointer-events:auto}
+ #stationModal .modal{width:min(560px,100%);height:auto;max-height:78dvh;border-radius:8px;border:1px solid var(--line)}
+ #stationModal .best-detail-map{height:145px}
+ #stationModal .best-detail-card{min-height:0;padding:14px}
+}
+
+@media(max-width:600px){
+ body{padding-bottom:64px}
+ .topbar.app-topbar{height:56px;padding:0 9px}
+ .brand-copy strong{font-size:16px}
+ .top-area{right:7px;max-width:96px;padding:6px;font-size:6.5px}
+ .quick-filters{top:56px;height:42px}
+ .quick-filters label,.quick-filters button{padding:4px 7px}
+ .map{height:calc(100dvh - 98px);min-height:390px}
+ .map-overlay{top:8px;left:8px;right:8px}
+ .mobile-sheet{left:0;right:0;bottom:64px;border-left:0;border-right:0;border-bottom:0;border-radius:6px 6px 0 0;max-height:42dvh}
+ .sheet-main{padding:9px 11px 10px}
+ .sheet-top{gap:8px}
+ .sheet-price{font-size:28px}
+ .sheet-station{font-size:10px}
+ .sheet-save b{font-size:12px}
+ .sheet-actions{grid-template-columns:1fr}
+ .sheet-more,.sheet-drive{display:none}
+ .sheet-options-link{padding:7px}
+ .bottom-nav{bottom:0;left:0;transform:none;width:100%;height:64px;border-radius:0;border-left:0;border-right:0;border-bottom:0}
+ #stationModal{padding:0;background:#fff;align-items:stretch;justify-content:stretch;pointer-events:auto}
+ #stationModal .best-detail-modal{width:100%;max-width:none;height:100dvh;max-height:none;border-radius:0;border:0}
+ #stationModal .best-detail-head{height:52px}
+ #stationModal .best-detail-map{height:28dvh;min-height:140px}
+ #stationModal .best-detail-card{min-height:0;height:auto;padding:13px}
+ #stationModal .best-detail-card h2{font-size:16px}
+ #stationModal .station-grid{gap:6px;margin:9px 0}
+ #stationModal .station-mini{padding:9px}
+ #stationModal .best-detail-go{padding:11px;margin-top:8px}
+ .detail-bottom-actions{gap:6px;margin-top:7px}
+}
+
+@media(max-width:430px){
+ .quick-filters span{font-size:5.5px}
+ .quick-filters select,.quick-filters b{font-size:8px}
+ .map{height:calc(100dvh - 98px);min-height:360px}
+ .mobile-sheet{max-height:44dvh}
+ .sheet-price{font-size:26px}
+ .sheet-meta{font-size:7px}
+ .sheet-save b{font-size:11px}
+ .nav{font-size:6.5px}
+ .nav svg{width:17px;height:17px}
+ #stationModal .best-detail-map{height:24dvh;min-height:120px}
+}
+
 </style>
 </head>
 <body>

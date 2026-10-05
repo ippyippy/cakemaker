@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "au.com.fueldrop.app",
+      "sha256_cert_fingerprints": [
+        "92:43:06:81:6F:25:90:CE:FA:42:AF:2A:CF:1A:4A:4A:07:D5:89:A7:75:0B:9E:5B:88:8F:61:C8:14:6F:2B:77"
+      ]
+    }
+  }
+]

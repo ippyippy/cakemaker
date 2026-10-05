@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">FuelDrop</string>
-    <string name="launch_url" translatable="false">https://fueldrop-au.vercel.app/</string>
-    <string name="provider_authority" translatable="false">au.com.fueldrop.app.fileprovider</string>
-    <string name="asset_statements" translatable="false">[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"web","site":"https://fueldrop-au.vercel.app"}}]</string>
+    <string name="app_name">FillMeNow</string>
+    <string name="launch_url" translatable="false">https://fillmenow-au.vercel.app/</string>
+    <string name="provider_authority" translatable="false">au.com.fillmenow.app.fileprovider</string>
+    <string name="asset_statements" translatable="false">[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"web","site":"https://fillmenow-au.vercel.app"}}]</string>
 </resources>

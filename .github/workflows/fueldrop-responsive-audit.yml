@@ -73,8 +73,16 @@ jobs:
               await page.screenshot({path:`shots/${s.name}-explore.png`,fullPage:false});
               let detail=null;
               const detailButton=page.getByText('Details',{exact:true}).first();
-              if(await detailButton.count()){
+              const markerButton=page.locator('.price-marker').first();
+              let opened=false;
+              if(await detailButton.count() && await detailButton.isVisible()){
                 await detailButton.click();
+                opened=true;
+              }else if(await markerButton.count() && await markerButton.isVisible()){
+                await markerButton.click();
+                opened=true;
+              }
+              if(opened){
                 await page.waitForTimeout(450);
                 detail=await page.evaluate(() => {
                   const e=document.querySelector('#stationModal .modal');

@@ -1,0 +1,90 @@
+name: FillMeNow iOS screenshots
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ios-fillmenow/**'
+      - '.github/workflows/fillmenow-ios-screenshots.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 26+
+        shell: bash
+        run: |
+          set -euo pipefail
+          XCODE_APP="$(find /Applications -maxdepth 1 -type d -name 'Xcode*.app' | sort -V | tail -n 1)"
+          test -n "$XCODE_APP"
+          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Install build tools
+        shell: bash
+        run: |
+          brew install xcodegen
+          python3 -m pip install --break-system-packages pillow
+
+      - name: Build native app
+        working-directory: ios-fillmenow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/generate_app_icon.py
+          xcodegen generate
+          xcodebuild             -project FillMeNow.xcodeproj             -scheme FillMeNow             -configuration Release             -sdk iphonesimulator             -destination 'generic/platform=iOS Simulator'             -derivedDataPath build/DerivedData             CODE_SIGNING_ALLOWED=NO             build >/tmp/fillmenow-ios-build.log
+          APP="build/DerivedData/Build/Products/Release-iphonesimulator/FillMeNow.app"
+          test -d "$APP"
+          echo "APP=$APP" >> "$GITHUB_ENV"
+
+      - name: Capture native App Store screenshots
+        working-directory: ios-fillmenow
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/AppStoreScreenshots
+
+          UDID="$(xcrun simctl list devices available | grep -E 'iPhone 17 Pro Max|iPhone 16 Pro Max|iPhone 15 Pro Max' | head -n1 | grep -Eo '[0-9A-F-]{36}' || true)"
+          if [ -z "$UDID" ]; then
+            UDID="$(xcrun simctl list devices available | grep 'iPhone' | head -n1 | grep -Eo '[0-9A-F-]{36}')"
+          fi
+          test -n "$UDID"
+
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4
+          xcrun simctl install "$UDID" "$APP"
+
+          # Explore: default Sydney data loads from the production backend.
+          xcrun simctl launch --terminate-running-process "$UDID" au.com.fillmenow.app
+          sleep 10
+          xcrun simctl io "$UDID" screenshot build/AppStoreScreenshots/01-explore.png
+
+          # Saved Stations
+          xcrun simctl terminate "$UDID" au.com.fillmenow.app || true
+          xcrun simctl launch "$UDID" au.com.fillmenow.app -screenSaved
+          sleep 2
+          xcrun simctl io "$UDID" screenshot build/AppStoreScreenshots/02-saved.png
+
+          # Settings / vehicle configuration
+          xcrun simctl terminate "$UDID" au.com.fillmenow.app || true
+          xcrun simctl launch "$UDID" au.com.fillmenow.app -screenSettings
+          sleep 2
+          xcrun simctl io "$UDID" screenshot build/AppStoreScreenshots/03-settings.png
+
+          sips -g pixelWidth -g pixelHeight build/AppStoreScreenshots/*.png
+          xcrun simctl shutdown "$UDID" || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fillmenow-ios-app-store-screenshots
+          path: ios-fillmenow/build/AppStoreScreenshots/*.png
+          if-no-files-found: error

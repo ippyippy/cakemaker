@@ -1,0 +1,113 @@
+name: FuelDrop responsive visual audit
+
+on:
+  push:
+    paths:
+      - .github/workflows/fueldrop-responsive-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  responsive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Playwright
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/fd-audit && cd /tmp/fd-audit
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
+
+      - name: Capture and measure
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/fd-audit
+          cat > audit.js <<'NODE'
+          const { chromium } = require('playwright');
+          const fs = require('fs');
+          const SITE='https://fueldrop-au.vercel.app/';
+          const sizes=[
+            {name:'phone-390',width:390,height:844},
+            {name:'tablet-768',width:768,height:1024},
+            {name:'laptop-1024',width:1024,height:768},
+            {name:'desktop-1366',width:1366,height:768},
+            {name:'desktop-1600',width:1600,height:900},
+            {name:'desktop-1920',width:1920,height:1080}
+          ];
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const results=[];
+            fs.mkdirSync('shots',{recursive:true});
+            for(const s of sizes){
+              const context=await browser.newContext({viewport:{width:s.width,height:s.height},deviceScaleFactor:1});
+              await context.addInitScript(() => {
+                localStorage.setItem('fdPrefs', JSON.stringify({
+                  state:'NSW',fuel:'Diesel',radius:20,tank:65,economy:9,vehicle:'car',
+                  frequency:'daily',time1:'06:00',time2:'15:30',threshold:''
+                }));
+                localStorage.setItem('fdLoc', JSON.stringify({
+                  lat:-33.8688,lng:151.2093,label:'Sydney NSW',suburb:'Sydney',postcode:'2000',state:'NSW'
+                }));
+              });
+              const page=await context.newPage();
+              await page.goto(SITE,{waitUntil:'domcontentloaded',timeout:60000});
+              await page.waitForTimeout(4500);
+              const metrics=await page.evaluate(() => {
+                const rect=id=>{const e=document.querySelector(id);if(!e)return null;const r=e.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom,display:getComputedStyle(e).display}};
+                return {
+                  innerWidth:window.innerWidth,
+                  innerHeight:window.innerHeight,
+                  scrollWidth:document.documentElement.scrollWidth,
+                  scrollHeight:document.documentElement.scrollHeight,
+                  decision:rect('.decision-column'),
+                  map:rect('.map-shell'),
+                  sheet:rect('.mobile-sheet'),
+                  nav:rect('.bottom-nav'),
+                  topbar:rect('.app-topbar')
+                };
+              });
+              await page.screenshot({path:`shots/${s.name}-explore.png`,fullPage:false});
+              let detail=null;
+              const detailButton=page.getByText('Details',{exact:true}).first();
+              if(await detailButton.count()){
+                await detailButton.click();
+                await page.waitForTimeout(450);
+                detail=await page.evaluate(() => {
+                  const e=document.querySelector('#stationModal .modal');
+                  const bg=document.querySelector('#stationModal');
+                  if(!e||!bg)return null;
+                  const r=e.getBoundingClientRect();
+                  return {
+                    x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom,
+                    open:bg.classList.contains('open'),
+                    viewport:{w:window.innerWidth,h:window.innerHeight}
+                  };
+                });
+                await page.screenshot({path:`shots/${s.name}-detail.png`,fullPage:false});
+              }
+              const overflow=metrics.scrollWidth>metrics.innerWidth+2;
+              const detailOffscreen=detail ? (detail.x < -2 || detail.right > detail.viewport.w+2 || detail.y < -2 || detail.bottom > detail.viewport.h+2) : false;
+              results.push({...s,metrics,detail,overflow,detailOffscreen});
+              await context.close();
+            }
+            await browser.close();
+            fs.writeFileSync('results.json',JSON.stringify(results,null,2));
+            console.log(JSON.stringify(results));
+            if(results.some(r=>r.overflow||r.detailOffscreen)) process.exit(2);
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+          node audit.js
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fueldrop-responsive-audit
+          path: |
+            /tmp/fd-audit/shots
+            /tmp/fd-audit/results.json
+          if-no-files-found: error

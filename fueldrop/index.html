@@ -423,6 +423,71 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
  transition:none!important;
 }
 
+
+/* Fixed on-screen marker size: map may zoom, marker does not */
+.price-marker.zoom-locked{
+ min-width:88px!important;
+ min-height:40px!important;
+ width:auto!important;
+ height:40px!important;
+ padding:5px 7px!important;
+ font-size:11px!important;
+ transform-origin:50% 100%!important;
+}
+.price-marker.zoom-locked .brand-mark{
+ width:26px!important;
+ height:26px!important;
+ flex:0 0 26px!important;
+}
+@media(min-width:1440px){
+ .price-marker.zoom-locked{
+  min-width:96px!important;
+  min-height:43px!important;
+  height:43px!important;
+  padding:5px 8px!important;
+  font-size:11.5px!important;
+ }
+ .price-marker.zoom-locked .brand-mark{width:28px!important;height:28px!important;flex-basis:28px!important}
+}
+@media(max-width:1179px){
+ .price-marker.zoom-locked{
+  min-width:82px!important;
+  min-height:38px!important;
+  height:38px!important;
+  padding:4px 6px!important;
+  font-size:10.5px!important;
+ }
+ .price-marker.zoom-locked .brand-mark{width:24px!important;height:24px!important;flex-basis:24px!important}
+}
+@media(max-width:900px){
+ .price-marker.zoom-locked{
+  min-width:76px!important;
+  min-height:35px!important;
+  height:35px!important;
+  font-size:9.5px!important;
+ }
+ .price-marker.zoom-locked .brand-mark{width:22px!important;height:22px!important;flex-basis:22px!important}
+}
+@media(max-width:600px){
+ .price-marker.zoom-locked{
+  min-width:68px!important;
+  min-height:32px!important;
+  height:32px!important;
+  padding:3px 5px!important;
+  font-size:9px!important;
+ }
+ .price-marker.zoom-locked .brand-mark{width:20px!important;height:20px!important;flex-basis:20px!important}
+}
+@media(max-width:430px){
+ .price-marker.zoom-locked{
+  min-width:62px!important;
+  min-height:30px!important;
+  height:30px!important;
+  font-size:8.5px!important;
+ }
+ .price-marker.zoom-locked .brand-mark{width:18px!important;height:18px!important;flex-basis:18px!important}
+}
+
 </style>
 </head>
 <body>
@@ -662,35 +727,13 @@ function ensureMap(){
  })
 }
 function markerProfile(){
- var z=map?map.getZoom():10,w=window.innerWidth||1440;
- if(w<=600){
-  if(z<=8)return {limit:5,cls:"zoom-far"};
-  if(z<=10)return {limit:8,cls:"zoom-mid"};
-  if(z<=12)return {limit:12,cls:"zoom-near"};
-  return {limit:18,cls:"zoom-near"}
- }
- if(w<=900){
-  if(z<=8)return {limit:6,cls:"zoom-far"};
-  if(z<=10)return {limit:10,cls:"zoom-mid"};
-  if(z<=12)return {limit:16,cls:"zoom-near"};
-  return {limit:24,cls:"zoom-near"}
- }
- if(w<=1179){
-  if(z<=8)return {limit:7,cls:"zoom-far"};
-  if(z<=10)return {limit:12,cls:"zoom-mid"};
-  if(z<=12)return {limit:20,cls:"zoom-near"};
-  return {limit:30,cls:"zoom-near"}
- }
- if(w<=1439){
-  if(z<=8)return {limit:8,cls:"zoom-far"};
-  if(z<=10)return {limit:14,cls:"zoom-mid"};
-  if(z<=12)return {limit:24,cls:"zoom-near"};
-  return {limit:36,cls:"zoom-near"}
- }
- if(z<=8)return {limit:10,cls:"zoom-far"};
- if(z<=10)return {limit:18,cls:"zoom-mid"};
- if(z<=12)return {limit:30,cls:"zoom-near"};
- return {limit:48,cls:"zoom-near"}
+ var z=map?map.getZoom():10,w=window.innerWidth||1440,limit;
+ if(w<=600)limit=z<=8?5:z<=10?8:z<=12?12:18;
+ else if(w<=900)limit=z<=8?6:z<=10?10:z<=12?16:24;
+ else if(w<=1179)limit=z<=8?7:z<=10?12:z<=12?20:30;
+ else if(w<=1439)limit=z<=8?8:z<=10?14:z<=12?24:36;
+ else limit=z<=8?10:z<=10?18:z<=12?30:48;
+ return {limit:limit,cls:"zoom-locked"}
 }
 function clearMapMarkers(){
  if(!Array.isArray(mapLayer))mapLayer=[];

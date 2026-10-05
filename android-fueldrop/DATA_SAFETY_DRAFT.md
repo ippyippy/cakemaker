@@ -1,6 +1,6 @@
-# FuelDrop — Google Play Data Safety Draft
+# FillMeNow — Google Play Data Safety Draft
 
-This is the working declaration for the current FuelDrop release. Re-check against the final Play Console wording before submitting.
+This is the working declaration for the current FillMeNow release. Re-check against the final Play Console wording before submitting.
 
 ## Does the app collect or share required user data?
 
@@ -8,8 +8,8 @@ This is the working declaration for the current FuelDrop release. Re-check again
 **Collected:** Yes, when the user chooses a location feature such as "Use current location".  
 **Required:** No — users can manually select/search an area.  
 **Purpose:** App functionality — finding nearby fuel and ranking stations.  
-**Processing:** Coordinates are sent to the FuelDrop backend to return nearby fuel data.  
-**Background use:** No. FuelDrop is designed for foreground/user-initiated location use.  
+**Processing:** Coordinates are sent to the FillMeNow backend to return nearby fuel data.  
+**Background use:** No. FillMeNow is designed for foreground/user-initiated location use.  
 **Sale / advertising:** No.
 
 ### Approximate location / area
@@ -30,7 +30,7 @@ Turning alerts off removes the active subscription.
 Stored locally on the user's device/browser in the current release.
 
 ### Account / identity data
-No FuelDrop account is required in the current release. No name, account username or FuelDrop password is collected.
+No FillMeNow account is required in the current release. No name, account username or FillMeNow password is collected.
 
 ### Payment / financial data
 None in the current release.
@@ -40,14 +40,14 @@ Not collected or requested in the current release.
 
 ## Sharing
 
-FuelDrop relies on service providers required to deliver the app, including:
+FillMeNow relies on service providers required to deliver the app, including:
 - Vercel hosting
 - Supabase backend/database services
 - mapping/tile services
 - browser/device push notification infrastructure
 - official fuel-data services
 
-Review Google Play's exact definition of "shared" versus service-provider processing when completing the form. FuelDrop does not sell personal or sensitive data and does not use location for advertising.
+Review Google Play's exact definition of "shared" versus service-provider processing when completing the form. FillMeNow does not sell personal or sensitive data and does not use location for advertising.
 
 ## Security practices
 
@@ -64,7 +64,7 @@ Users can:
 - remove saved stations,
 - reset app data,
 - clear browser/app storage,
-- contact FuelDrop regarding privacy/deletion questions.
+- contact FillMeNow regarding privacy/deletion questions.
 
 Privacy Policy:
-https://fueldrop-au.vercel.app/privacy.html
+https://fillmenow-au.vercel.app/privacy.html

@@ -1,4 +1,4 @@
-name: FuelDrop Play screenshots
+name: FillMeNow Play screenshots
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
           CHROME="$CHROME" node <<'NODE'
           const puppeteer=require('puppeteer-core');
           const fs=require('fs');
-          const SITE='https://fueldrop-au.vercel.app/';
+          const SITE='https://fillmenow-au.vercel.app/';
           const out='/tmp/fueldrop-shots';
 
           async function settle(ms=1600){await new Promise(r=>setTimeout(r,ms))}
@@ -87,6 +87,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: fueldrop-play-phone-screenshots
+          name: fillmenow-play-phone-screenshots
           path: /tmp/fueldrop-shots/*.png
           if-no-files-found: error

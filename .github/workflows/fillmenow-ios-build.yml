@@ -1,0 +1,59 @@
+name: FillMeNow iOS build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ios-fillmenow/**'
+      - '.github/workflows/fillmenow-ios-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 26+
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Installed Xcodes:"
+          ls -1 /Applications | grep '^Xcode' || true
+          XCODE_APP="$(find /Applications -maxdepth 1 -type d -name 'Xcode*.app' | sort -V | tail -n 1)"
+          test -n "$XCODE_APP"
+          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Install XcodeGen and Pillow
+        shell: bash
+        run: |
+          brew install xcodegen
+          python3 -m pip install --break-system-packages pillow
+
+      - name: Generate iOS project and app icon
+        working-directory: ios-fillmenow
+        shell: bash
+        run: |
+          python3 scripts/generate_app_icon.py
+          xcodegen generate
+          test -f FillMeNow.xcodeproj/project.pbxproj
+          test -f FillMeNow/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
+
+      - name: Build Release for iOS Simulator
+        working-directory: ios-fillmenow
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild             -project FillMeNow.xcodeproj             -scheme FillMeNow             -configuration Release             -sdk iphonesimulator             -destination 'generic/platform=iOS Simulator'             -derivedDataPath build/DerivedData             CODE_SIGNING_ALLOWED=NO             build | xcpretty
+
+      - name: Upload simulator app
+        uses: actions/upload-artifact@v4
+        with:
+          name: fillmenow-ios-simulator-app
+          path: ios-fillmenow/build/DerivedData/Build/Products/Release-iphonesimulator/FillMeNow.app
+          if-no-files-found: error

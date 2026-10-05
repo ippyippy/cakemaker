@@ -1,0 +1,33 @@
+name: FillMeNow
+options:
+  bundleIdPrefix: au.com.fillmenow
+  deploymentTarget:
+    iOS: "16.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+targets:
+  FillMeNow:
+    type: application
+    platform: iOS
+    sources:
+      - path: FillMeNow
+    resources:
+      - path: FillMeNow/PrivacyInfo.xcprivacy
+      - path: FillMeNow/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: au.com.fillmenow.app
+        PRODUCT_NAME: FillMeNow
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: FillMeNow
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.navigation
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: FillMeNow uses your location only while you are using the app to find and rank nearby fuel stations.
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: NO
+    scheme:
+      testTargets: []

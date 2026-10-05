@@ -112,7 +112,7 @@ body{background:#eef1ed}
 .add-station-btn{width:100%;border:0;border-radius:3px;background:#253028;color:#fff;padding:11px;font-size:9px;font-weight:900;margin-top:10px}
 .saved-list{gap:0;background:#fff;border:1px solid var(--line);border-radius:4px;overflow:hidden}.saved-card{border:0;border-bottom:1px solid #edf0ec;border-radius:0;padding:11px}.saved-card:last-child{border-bottom:0}.saved-card b{font-size:9px}.saved-card span{font-size:7px}
 .map-tools-bottom{display:none;position:absolute;z-index:24;left:12px;right:12px;bottom:14px;justify-content:space-between;pointer-events:none}.map-tools-bottom button{pointer-events:auto;border:1px solid #d6dcd6;background:rgba(255,255,255,.96);box-shadow:0 5px 15px rgba(0,0,0,.12);height:34px;border-radius:17px;padding:0 11px;font-size:8px;font-weight:850;color:#29312b}.map-tools-bottom button:last-child{width:34px;padding:0;border-radius:50%}
-.price-marker{position:relative}.price-marker:after{content:"";position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--ink)}.price-marker.best:after{border-top-color:var(--green)}
+.price-marker{position:absolute}.price-marker:after{content:"";position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--ink)}.price-marker.best:after{border-top-color:var(--green)}
 @media(max-width:900px){
  .topbar.app-topbar{height:58px}.quick-filters{top:58px}
  .map{height:calc(100vh - 194px);min-height:405px}.map-overlay{top:8px}.map-search{display:none}.map-locate{display:none}.map-tools-bottom{display:flex;bottom:148px}
@@ -409,6 +409,20 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
  .price-marker .brand-mark{width:18px;height:18px}
 }
 
+
+/* Geo-locked fuel markers */
+.maplibregl-marker.price-marker{
+ position:absolute!important;
+ top:0!important;
+ left:0!important;
+ margin:0!important;
+ will-change:transform;
+ transform-origin:50% 100%;
+}
+.price-marker{
+ transition:none!important;
+}
+
 </style>
 </head>
 <body>
@@ -698,7 +712,7 @@ function renderMapMarkers(){
   el.innerHTML=brandMark(x.brand,x.station_name)+x.price.toFixed(1)+"¢";
   el.setAttribute("aria-label",x.station_name+" "+x.price.toFixed(1)+" cents per litre");
   el.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();openStation(x.station_id)});
-  mapLayer.push(new maplibregl.Marker({element:el,anchor:"bottom"}).setLngLat([+x.longitude,+x.latitude]).addTo(map))
+  mapLayer.push(new maplibregl.Marker({element:el,anchor:"bottom",offset:[0,-8]}).setLngLat([+x.longitude,+x.latitude]).addTo(map))
  })
 }
 function renderMap(){

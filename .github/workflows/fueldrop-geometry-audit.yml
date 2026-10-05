@@ -1,0 +1,116 @@
+name: FuelDrop mobile geometry audit
+
+on:
+  push:
+    branches:
+      - fueldrop-responsive-preview
+    paths:
+      - .github/workflows/fueldrop-geometry-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  geometry:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check 315 and 390 mobile geometry
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then echo "No Chrome"; exit 1; fi
+          mkdir -p /tmp/fd-geom && cd /tmp/fd-geom
+          npm init -y >/dev/null 2>&1
+          npm install puppeteer-core@24.16.0 --no-save >/dev/null 2>&1
+          CHROME="$CHROME" node <<'NODE'
+          const puppeteer=require('puppeteer-core');
+          const URL='https://fueldrop-responsive-preview.vercel.app/';
+          const widths=[315,390];
+
+          function near(a,b,t=.75){return Math.abs(a-b)<=t}
+          function rect(el){const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,cx:r.x+r.width/2}}
+
+          (async()=>{
+            const browser=await puppeteer.launch({executablePath:process.env.CHROME,headless:true,args:['--no-sandbox','--disable-setuid-sandbox']});
+            const reports=[];
+            for(const width of widths){
+              const page=await browser.newPage();
+              await page.setViewport({width,height:844,deviceScaleFactor:1});
+              await page.goto(URL,{waitUntil:'networkidle2',timeout:60000});
+              await page.evaluate(()=>{
+                localStorage.setItem('fdPrefs',JSON.stringify({state:'NSW',fuel:'Diesel',radius:20,tank:65,economy:9,vehicle:'car',frequency:'daily',time1:'06:00',time2:'15:30',threshold:''}));
+                localStorage.setItem('fdLoc',JSON.stringify({lat:-33.8688,lng:151.2093,label:'Sydney NSW',suburb:'Sydney',postcode:'2000',state:'NSW'}));
+              });
+              await page.reload({waitUntil:'networkidle2',timeout:60000});
+              await new Promise(r=>setTimeout(r,1800));
+
+              const explore=await page.evaluate(()=>{
+                const q=s=>document.querySelector(s);
+                const R=el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,cx:r.x+r.width/2}};
+                const cells=[...document.querySelectorAll('.quick-filters>*')].map(R);
+                return {
+                  topbar:R(q('.topbar.app-topbar')),
+                  brand:R(q('.topbar.app-topbar .brand')),
+                  filters:R(q('.quick-filters')),
+                  cells
+                }
+              });
+
+              const pages={};
+              const pageNames=['options','saved','alerts','more'];
+              for(const name of pageNames){
+                if(name==='options'){
+                  await page.evaluate(()=>window.FD&&window.FD.options&&window.FD.options());
+                }else{
+                  await page.click('.nav[data-page="'+name+'"]');
+                }
+                await page.waitForSelector('#page-'+name+'.active',{timeout:10000});
+                await new Promise(r=>setTimeout(r,150));
+                pages[name]=await page.evaluate(name=>{
+                  const q=s=>document.querySelector(s);
+                  const R=el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,cx:r.x+r.width/2}};
+                  const head=q('#page-'+name+' .phone-page-head');
+                  const word=q('#page-'+name+' .mini-wordmark');
+                  const body=q('#page-'+name+' .phone-page-body');
+                  const filter=q('#page-'+name+' .filter-strip');
+                  const cs=getComputedStyle(body);
+                  return {
+                    head:R(head),
+                    word:R(word),
+                    body:R(body),
+                    bodyPaddingLeft:parseFloat(cs.paddingLeft)||0,
+                    bodyPaddingRight:parseFloat(cs.paddingRight)||0,
+                    filter:filter?R(filter):null,
+                    filterCells:filter?[...filter.children].map(R):[]
+                  }
+                },name);
+              }
+
+              const failures=[];
+              if(!near(explore.topbar.h,56)) failures.push('Explore header height '+explore.topbar.h);
+              if(!near(explore.filters.h,44)) failures.push('Explore filter height '+explore.filters.h);
+              if(!near(explore.brand.cx,width/2,1.25)) failures.push('Explore brand off-centre '+explore.brand.cx);
+              const ew=explore.cells.map(x=>x.w);
+              if(Math.max(...ew)-Math.min(...ew)>1) failures.push('Explore filter cells unequal '+ew.join(','));
+
+              for(const [name,g] of Object.entries(pages)){
+                if(!near(g.head.h,56)) failures.push(name+' header height '+g.head.h);
+                if(!near(g.word.cx,width/2,1.25)) failures.push(name+' wordmark off-centre '+g.word.cx);
+                if(!near(g.bodyPaddingLeft,12,1)) failures.push(name+' body left gutter '+g.bodyPaddingLeft);
+                if(!near(g.bodyPaddingRight,12,1)) failures.push(name+' body right gutter '+g.bodyPaddingRight);
+                if(g.filter){
+                  if(!near(g.filter.h,44)) failures.push(name+' filter height '+g.filter.h);
+                  const ws=g.filterCells.map(x=>x.w);
+                  if(Math.max(...ws)-Math.min(...ws)>1) failures.push(name+' filter cells unequal '+ws.join(','));
+                }
+              }
+              reports.push({width,explore,pages,failures});
+              await page.close();
+            }
+            console.log('GEOMETRY '+JSON.stringify(reports));
+            const all=reports.flatMap(r=>r.failures.map(f=>r.width+': '+f));
+            if(all.length) throw new Error(all.join(' | '));
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE

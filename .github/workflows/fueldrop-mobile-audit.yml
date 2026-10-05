@@ -1,0 +1,89 @@
+name: FuelDrop mobile viewport audit
+
+on:
+  push:
+    branches:
+      - fueldrop-responsive-preview
+    paths:
+      - .github/workflows/fueldrop-mobile-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Audit 315x568 mobile UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No system Chrome found"
+            exit 1
+          fi
+          mkdir -p /tmp/fueldrop-audit
+          cd /tmp/fueldrop-audit
+          npm init -y >/dev/null 2>&1
+          npm install puppeteer-core@24.16.0 --no-save >/dev/null 2>&1
+          CHROME="$CHROME" node <<'NODE'
+          const puppeteer=require('puppeteer-core');
+          (async()=>{
+            const browser=await puppeteer.launch({
+              executablePath:process.env.CHROME,
+              headless:true,
+              args:['--no-sandbox','--disable-setuid-sandbox']
+            });
+            const page=await browser.newPage();
+            await page.setViewport({width:315,height:568,deviceScaleFactor:1});
+            const issues=[];
+            page.on('pageerror',e=>issues.push({type:'pageerror',text:String(e)}));
+            page.on('console',m=>{
+              if(['error','warning'].includes(m.type())) issues.push({type:m.type(),text:m.text()});
+            });
+            await page.goto('https://fueldrop-responsive-preview.vercel.app/',{waitUntil:'networkidle2',timeout:60000});
+            await page.evaluate(()=>{
+              localStorage.setItem('fdPrefs',JSON.stringify({state:'NSW',fuel:'Diesel',radius:20,tank:65,economy:9,vehicle:'car',frequency:'daily',time1:'06:00',time2:'15:30',threshold:''}));
+              localStorage.setItem('fdLoc',JSON.stringify({lat:-33.8688,lng:151.2093,label:'Sydney NSW',suburb:'Sydney',postcode:'2000',state:'NSW'}));
+            });
+            await page.reload({waitUntil:'networkidle2',timeout:60000});
+            await page.waitForSelector('#sheetMain',{timeout:30000});
+            await new Promise(r=>setTimeout(r,2500));
+            const before=await page.evaluate(()=>({
+              page:document.body.dataset.page,
+              topbar:getComputedStyle(document.querySelector('.topbar.app-topbar')).display,
+              quick:getComputedStyle(document.querySelector('.quick-filters')).display,
+              sheet:getComputedStyle(document.querySelector('.mobile-sheet')).display
+            }));
+            const optionBtn=await page.$('.sheet-options-link');
+            if(!optionBtn) throw new Error('View all options button missing on mobile Explore');
+            await optionBtn.click();
+            await page.waitForSelector('#page-options.active',{timeout:10000});
+            await new Promise(r=>setTimeout(r,500));
+            const after=await page.evaluate(()=>({
+              page:document.body.dataset.page,
+              subpage:document.body.classList.contains('subpage-mobile'),
+              topbar:getComputedStyle(document.querySelector('.topbar.app-topbar')).display,
+              quick:getComputedStyle(document.querySelector('.quick-filters')).display,
+              pageHead:getComputedStyle(document.querySelector('#page-options .phone-page-head')).display,
+              filter:getComputedStyle(document.querySelector('#page-options .filter-strip')).display,
+              optionsOverflow:getComputedStyle(document.querySelector('#optionsList')).overflow,
+              bodyScrollHeight:document.documentElement.scrollHeight,
+              viewportHeight:window.innerHeight,
+              optionRows:document.querySelectorAll('#optionsList .option-row').length
+            }));
+            const badIssues=issues.filter(x=>
+              !/favicon/i.test(x.text) &&
+              !/ERR_BLOCKED_BY_CLIENT/i.test(x.text)
+            );
+            console.log('AUDIT '+JSON.stringify({before,after,issues:badIssues}));
+            if(after.page!=='options') throw new Error('Options page state not set');
+            if(!after.subpage) throw new Error('Mobile subpage class missing');
+            if(after.topbar!=='none'||after.quick!=='none') throw new Error('Duplicate global mobile header/filter still visible');
+            if(after.pageHead==='none'||after.filter==='none') throw new Error('Options header/filter missing');
+            if(after.optionRows<1) throw new Error('Options list empty');
+            if(badIssues.some(x=>/styleimagemissing|Image .* could not be loaded/i.test(x.text))) throw new Error('Map style image warning still present');
+            await browser.close();
+          })().catch(async e=>{console.error(e);process.exit(1)});
+          NODE

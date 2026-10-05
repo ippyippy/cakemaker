@@ -1,0 +1,31 @@
+# FillMeNow — Apple App Store Release Checklist
+
+## Prepared
+- [x] Native SwiftUI app source
+- [x] Native MapKit map
+- [x] Native station clustering
+- [x] Core Location foreground permission only
+- [x] Manual suburb/postcode search
+- [x] Best Stop ranking
+- [x] Saved stations
+- [x] Vehicle settings
+- [x] Apple Maps navigation
+- [x] Privacy manifest
+- [x] Public privacy policy
+- [x] Public terms
+- [x] App Store listing copy
+- [x] App privacy draft
+- [x] App Review notes
+- [x] Bundle ID: au.com.fillmenow.app
+- [x] App icon generation
+- [ ] Native iPhone screenshot set from final simulator/device build
+- [ ] Apple Developer Program team selected
+- [ ] App ID / bundle ID registered in Apple Developer account
+- [ ] App Store Connect app record created
+- [ ] Distribution certificate / provisioning profile
+- [ ] Signed App Store archive
+- [ ] Upload build to App Store Connect
+- [ ] Complete updated age-rating questionnaire
+- [ ] Confirm App Privacy answers in App Store Connect
+- [ ] Add screenshots / icon / description
+- [ ] Submit for App Review

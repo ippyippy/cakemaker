@@ -1082,6 +1082,69 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
 .price-marker .brand-word{font-size:6.5px}
 .best-price .brand-word,.drive-price .brand-word{font-size:7px}
 
+
+/* Full station coverage + clustering */
+.map-station-count{
+ position:absolute;
+ z-index:24;
+ left:18px;
+ bottom:18px;
+ background:rgba(13,20,16,.92);
+ color:#fff;
+ border:1px solid rgba(255,255,255,.12);
+ border-radius:16px;
+ padding:7px 10px;
+ font-size:7.5px;
+ line-height:1;
+ font-weight:900;
+ box-shadow:0 4px 14px rgba(0,0,0,.18);
+ pointer-events:none;
+}
+.station-cluster{
+ width:62px;
+ height:62px;
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+ border:3px solid #fff;
+ border-radius:50%;
+ background:#172019;
+ color:#fff;
+ box-shadow:0 7px 20px rgba(0,0,0,.24);
+ line-height:1;
+}
+.station-cluster b{font-size:16px}
+.station-cluster span{
+ margin-top:2px;
+ font-size:6.5px;
+ font-weight:900;
+ text-transform:uppercase;
+ letter-spacing:.3px;
+}
+.station-cluster small{
+ margin-top:3px;
+ font-size:6px;
+ color:#bfc8c0;
+ font-weight:800;
+}
+.station-cluster.contains-best{
+ background:var(--green);
+ color:#10200c;
+ border-color:#fff;
+}
+.station-cluster.contains-best small{color:#315c20}
+@media(max-width:900px){
+ .map-station-count{
+  left:10px;
+  bottom:190px;
+  padding:6px 9px;
+  font-size:7px;
+ }
+ .station-cluster{width:54px;height:54px}
+ .station-cluster b{font-size:14px}
+}
+
 </style>
 </head>
 <body>
@@ -1133,7 +1196,7 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
    </aside>
    <div class="map-shell">
     <div id="exploreMap" class="map"></div><div id="mapNotice" class="map-notice" role="status"></div>
-    <div class="map-overlay"><button class="map-search" id="mapArea">Choose your area</button><button class="map-locate" id="gpsBtn">⌖</button></div><div class="map-tools-bottom"><button id="recenterBtn">↻ <span>Re-centre</span></button><button id="mapSettingsBtn">⚙</button></div>
+    <div class="map-overlay"><button class="map-search" id="mapArea">Choose your area</button><button class="map-locate" id="gpsBtn">⌖</button></div><div class="map-station-count" id="mapStationCount">0 stations</div><div class="map-tools-bottom"><button id="recenterBtn">↻ <span>Re-centre</span></button><button id="mapSettingsBtn">⚙</button></div>
    </div>
   </div>
  </div>
@@ -1155,7 +1218,7 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
   </div>
   <div class="phone-page-body">
    <h1>Nearby Options</h1>
-   <p class="phone-sub">Ranked by estimated total trip cost using your vehicle settings.</p>
+   <p class="phone-sub" id="optionsSummary">Ranked by estimated total trip cost using your vehicle settings.</p>
    <div class="options-list" id="optionsList"></div>
   </div>
  </div>
@@ -1377,18 +1440,28 @@ function ensureMap(){
  })
 }
 function markerProfile(){
- var z=map?map.getZoom():10,w=window.innerWidth||1440,limit;
- if(w<=600)limit=z<=8?5:z<=10?8:z<=12?12:18;
- else if(w<=900)limit=z<=8?6:z<=10?10:z<=12?16:24;
- else if(w<=1179)limit=z<=8?7:z<=10?12:z<=12?20:30;
- else if(w<=1439)limit=z<=8?8:z<=10?14:z<=12?24:36;
- else limit=z<=8?10:z<=10?18:z<=12?30:48;
- return {limit:limit,cls:"zoom-locked"}
+ var z=map?map.getZoom():10,w=window.innerWidth||1440,clusterPx;
+ if(z<8.5)clusterPx=w<=600?116:128;
+ else if(z<10)clusterPx=w<=600?100:112;
+ else if(z<11.5)clusterPx=w<=600?84:96;
+ else if(z<12.7)clusterPx=w<=600?70:82;
+ else clusterPx=0;
+ return {clusterPx:clusterPx,cls:"zoom-locked"}
 }
 function clearMapMarkers(){
  if(!Array.isArray(mapLayer))mapLayer=[];
  mapLayer.forEach(function(m){try{m.remove()}catch(e){}});
  mapLayer=[]
+}
+function clusterStations(points,pixelSize){
+ if(!pixelSize||!map)return points.map(function(x){return {items:[x],lng:+x.longitude,lat:+x.latitude}});
+ var buckets=new Map();
+ points.forEach(function(x){
+  var p=map.project([+x.longitude,+x.latitude]),key=Math.floor(p.x/pixelSize)+":"+Math.floor(p.y/pixelSize),g=buckets.get(key);
+  if(!g){g={items:[],lng:0,lat:0};buckets.set(key,g)}
+  g.items.push(x);g.lng+=+x.longitude;g.lat+=+x.latitude
+ });
+ return Array.from(buckets.values()).map(function(g){g.lng/=g.items.length;g.lat/=g.items.length;return g})
 }
 function renderMapMarkers(){
  if(!map||!loc||!window.maplibregl)return;
@@ -1397,15 +1470,35 @@ function renderMapMarkers(){
  user.className="user-map-marker";
  user.setAttribute("aria-label","Your selected location");
  mapLayer.push(new maplibregl.Marker({element:user,anchor:"center"}).setLngLat([+loc.lng,+loc.lat]).addTo(map));
- var p=markerProfile();
- ranked.slice(0,p.limit).forEach(function(x,i){
-  var el=document.createElement("button");
-  el.type="button";
-  el.className="price-marker "+p.cls+" "+(i===0?"best":"");
-  el.innerHTML=brandMark(x.brand,x.station_name)+x.price.toFixed(1)+"¢";
-  el.setAttribute("aria-label",x.station_name+" "+x.price.toFixed(1)+" cents per litre");
-  el.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();openStation(x.station_id)});
-  mapLayer.push(new maplibregl.Marker({element:el,anchor:"bottom",offset:[0,-8]}).setLngLat([+x.longitude,+x.latitude]).addTo(map))
+
+ var p=markerProfile(),groups=clusterStations(ranked,p.clusterPx),countEl=$("mapStationCount");
+ if(countEl){
+  var grouped=groups.some(function(g){return g.items.length>1});
+  countEl.textContent=ranked.length+" station"+(ranked.length===1?"":"s")+" in "+prefs.radius+" km"+(grouped?" · grouped":"");
+ }
+
+ groups.forEach(function(g){
+  if(g.items.length===1){
+   var x=g.items[0],i=ranked.indexOf(x),el=document.createElement("button");
+   el.type="button";
+   el.className="price-marker "+p.cls+" "+(i===0?"best":"");
+   el.innerHTML=brandMark(x.brand,x.station_name)+x.price.toFixed(1)+"¢";
+   el.setAttribute("aria-label",x.station_name+" "+x.price.toFixed(1)+" cents per litre");
+   el.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();openStation(x.station_id)});
+   mapLayer.push(new maplibregl.Marker({element:el,anchor:"bottom",offset:[0,-8]}).setLngLat([+x.longitude,+x.latitude]).addTo(map));
+   return
+  }
+
+  var cluster=document.createElement("button"),containsBest=g.items.indexOf(ranked[0])>=0,minPrice=Math.min.apply(null,g.items.map(function(x){return +x.price}));
+  cluster.type="button";
+  cluster.className="station-cluster"+(containsBest?" contains-best":"");
+  cluster.innerHTML='<b>'+g.items.length+'</b><span>stations</span><small>from '+minPrice.toFixed(1)+'¢</small>';
+  cluster.setAttribute("aria-label",g.items.length+" fuel stations. Click to zoom in.");
+  cluster.addEventListener("click",function(ev){
+   ev.preventDefault();ev.stopPropagation();
+   map.easeTo({center:[g.lng,g.lat],zoom:Math.min(15,(map.getZoom()||10)+1.7),duration:450})
+  });
+  mapLayer.push(new maplibregl.Marker({element:cluster,anchor:"center"}).setLngLat([g.lng,g.lat]).addTo(map))
  })
 }
 function renderMap(){
@@ -1493,7 +1586,7 @@ function showPage(p){
  if(p==="more")moreUI();
  window.scrollTo(0,0)
 }
-function renderOptions(){syncFuel();if($("optionsFuel")){$("optionsFuel").innerHTML=fuels().map(function(f){return "<option>"+f+"</option>"}).join("");$("optionsFuel").value=prefs.fuel}$("optionsRadius").value=String(prefs.radius);var ov=({car:"Car",ute:"Ute / van",truck:"Truck",heavy:"Heavy truck",custom:"Custom"})[prefs.vehicle]||"Custom";$("optionsVehicle").innerHTML='<span>Vehicle</span><b>'+esc(ov)+'</b>';if(!ranked.length){$("optionsList").innerHTML='<div class="empty">Choose an area to compare nearby stations.</div>';return}$("optionsList").innerHTML=ranked.slice(0,25).map(function(x,i){return '<div class="option-row '+(i===0?"best":"")+'"><div class="option-brand">'+brandRank(x.brand,x.station_name,i+1)+'</div><div class="option-main"><b>'+esc(x.station_name)+'</b><strong>'+x.price.toFixed(1)+'¢</strong><span>'+x.distance.toFixed(1)+' km · est. '+x.etaMin+' min · '+x.effective.toFixed(1)+'¢ after travel</span>'+(x.saving>0?'<span class="option-save">Save about '+cash(x.saving)+'</span>':"")+'</div><button class="option-go" onclick="FD.nav(&quot;'+esc(x.station_id)+'&quot;)">GO</button></div>'}).join("")}
+function renderOptions(){syncFuel();if($("optionsFuel")){$("optionsFuel").innerHTML=fuels().map(function(f){return "<option>"+f+"</option>"}).join("");$("optionsFuel").value=prefs.fuel}$("optionsRadius").value=String(prefs.radius);var ov=({car:"Car",ute:"Ute / van",truck:"Truck",heavy:"Heavy truck",custom:"Custom"})[prefs.vehicle]||"Custom";$("optionsVehicle").innerHTML='<span>Vehicle</span><b>'+esc(ov)+'</b>';if($("optionsSummary"))$("optionsSummary").textContent=ranked.length?ranked.length+" stations within "+prefs.radius+" km · ranked by estimated total trip cost.":"Ranked by estimated total trip cost using your vehicle settings.";if(!ranked.length){$("optionsList").innerHTML='<div class="empty">Choose an area to compare nearby stations.</div>';return}$("optionsList").innerHTML=ranked.map(function(x,i){return '<div class="option-row '+(i===0?"best":"")+'"><div class="option-brand">'+brandRank(x.brand,x.station_name,i+1)+'</div><div class="option-main"><b>'+esc(x.station_name)+'</b><strong>'+x.price.toFixed(1)+'¢</strong><span>'+x.distance.toFixed(1)+' km · est. '+x.etaMin+' min · '+x.effective.toFixed(1)+'¢ after travel</span>'+(x.saving>0?'<span class="option-save">Save about '+cash(x.saving)+'</span>':"")+'</div><button class="option-go" onclick="FD.nav(&quot;'+esc(x.station_id)+'&quot;)">GO</button></div>'}).join("")}
 function openDrawer(which){var d=$("settingsDrawer");d.classList.add("open");Array.from(document.querySelectorAll(".drawer-panel")).forEach(function(p){p.classList.remove("active")});var p=$("drawer-"+which);if(p)p.classList.add("active");$("drawerTitle").textContent=which==="vehicle"?"Vehicle Settings":which==="fuel"?"Fuel Type":which==="radius"?"Search Radius":"FillMeNow";if(which==="fuel")renderFuelChoices();if(which==="radius")renderRadiusChoices();if(which==="vehicle")moreUI()}
 function closeDrawer(){$("settingsDrawer").classList.remove("open")}
 function renderFuelChoices(){var el=$("fuelChoices");el.innerHTML=fuels().map(function(f){return '<button class="drawer-choice '+(f===prefs.fuel?"active":"")+'" data-fuel="'+esc(f)+'"><span>'+esc(f)+'</span><span>'+(f===prefs.fuel?"✓":"")+'</span></button>'}).join("");Array.from(el.querySelectorAll("[data-fuel]")).forEach(function(b){b.onclick=function(){prefs.fuel=this.dataset.fuel;persist();syncFuel();load();moreUI();closeDrawer()}})}

@@ -1,4 +1,4 @@
-# FuelDrop — Google Play Release Checklist
+# FillMeNow — Google Play Release Checklist
 
 ## Completed / prepared
 - [x] Production web app live
@@ -10,7 +10,7 @@
 - [x] Public Terms & Disclaimer
 - [x] Privacy link available in app
 - [x] Android TWA source project
-- [x] Package ID selected: au.com.fueldrop.app
+- [x] Package ID selected: au.com.fillmenow.app
 - [x] compileSdk 36
 - [x] targetSdk 36
 - [x] No native background-location permission
@@ -20,7 +20,7 @@
 - [x] Data Safety declaration drafted
 
 ## Play Console actions that require the developer account
-- [ ] Create FuelDrop app entry in Play Console with package ID au.com.fueldrop.app
+- [ ] Create FillMeNow app entry in Play Console with package ID au.com.fillmenow.app
 - [ ] Enable Play App Signing
 - [ ] Copy the Play App Signing SHA-256 certificate fingerprint
 - [ ] Add that fingerprint to /.well-known/assetlinks.json

@@ -306,6 +306,28 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
  .map-tools-bottom button:first-child span{display:none}
 }
 
+
+/* Explore viewport lock and desktop decision-panel containment */
+@media(max-width:900px){
+ body{padding-bottom:0!important}
+ #page-explore .explore{padding-bottom:0!important}
+}
+@media(min-width:901px) and (max-width:1099px){
+ #page-explore .explore{padding-bottom:8px!important}
+}
+@media(min-width:1100px) and (max-width:1279px){
+ #page-explore .explore{padding-bottom:12px!important}
+ .decision-column{max-height:calc(100dvh - 88px);overflow:hidden;grid-template-rows:auto auto auto minmax(0,1fr)}
+ .decision-column .alternatives{min-height:0;display:flex;flex-direction:column}
+ .decision-column .alt-list{min-height:0;max-height:none;overflow:auto;flex:1}
+}
+@media(min-width:1280px){
+ #page-explore .explore{padding-bottom:14px!important}
+ .decision-column{max-height:calc(100dvh - 92px);overflow:hidden;grid-template-rows:auto auto auto minmax(0,1fr)}
+ .decision-column .alternatives{min-height:0;display:flex;flex-direction:column}
+ .decision-column .alt-list{min-height:0;max-height:none;overflow:auto;flex:1}
+}
+
 </style>
 </head>
 <body>

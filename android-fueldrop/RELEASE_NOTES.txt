@@ -1,4 +1,4 @@
-FuelDrop 1.0
+FillMeNow 1.0
 
 Find nearby fuel using reported pump prices, distance and estimated trip value.
 

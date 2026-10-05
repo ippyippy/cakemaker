@@ -1,10 +1,10 @@
-# FuelDrop Android / Google Play package
+# FillMeNow Android / Google Play package
 
-Package ID: `au.com.fueldrop.app`
+Package ID: `au.com.fillmenow.app`
 
-Production origin: `https://fueldrop-au.vercel.app`
+Production origin: `https://fillmenow-au.vercel.app`
 
-This project wraps the FuelDrop PWA in a Trusted Web Activity using Google's Android Browser Helper.
+This project wraps the FillMeNow PWA in a Trusted Web Activity using Google's Android Browser Helper.
 
 ## Android / Play configuration
 
@@ -23,13 +23,13 @@ Use JDK 17, Android SDK Platform 36 and Build Tools 36.0.0.
 gradle :app:bundleRelease
 ```
 
-The release AAB must be signed with the permanent FuelDrop upload key before Play upload.
+The release AAB must be signed with the permanent FillMeNow upload key before Play upload.
 
 ## Digital Asset Links
 
 A Trusted Web Activity requires:
 
-`https://fueldrop-au.vercel.app/.well-known/assetlinks.json`
+`https://fillmenow-au.vercel.app/.well-known/assetlinks.json`
 
 The file must contain the package ID and SHA-256 certificate fingerprint. For Play-distributed builds, add the **Google Play App Signing certificate** SHA-256 fingerprint after the app is created in Play Console. The upload-key fingerprint may also be included for local/direct signed builds.
 
@@ -37,5 +37,5 @@ Do not commit a keystore or keystore passwords to this public repository.
 
 ## Public policy URLs
 
-- Privacy: https://fueldrop-au.vercel.app/privacy.html
-- Terms: https://fueldrop-au.vercel.app/terms.html
+- Privacy: https://fillmenow-au.vercel.app/privacy.html
+- Terms: https://fillmenow-au.vercel.app/terms.html

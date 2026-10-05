@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#0D1410</color>
+    <color name="colorPrimaryDark">#0D1410</color>
+    <color name="navigationColor">#0D1410</color>
+    <color name="fuelDropGreen">#83E83D</color>
+</resources>

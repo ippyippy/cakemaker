@@ -1,4 +1,4 @@
-const C='fillmenow-web-v1';
+const C='fillmenow-web-v2';
 const HOME='/';
 const SHELL=[HOME,'/manifest.webmanifest','/icon.svg'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});

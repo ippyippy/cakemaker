@@ -625,6 +625,67 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
  .desktop-station-detail{display:none!important}
 }
 
+
+/* Mobile subpage cleanup */
+@media(max-width:900px){
+ body.subpage-mobile{padding-bottom:64px!important;background:#f5f6f4}
+ body.subpage-mobile>.app>.topbar.app-topbar,
+ body.subpage-mobile>.app>.quick-filters{display:none!important}
+ body.subpage-mobile .phone-page{min-height:calc(100dvh - 64px)}
+ body.subpage-mobile .phone-page-head{
+  top:0!important;
+  height:56px;
+  position:sticky;
+  z-index:120;
+ }
+ body.subpage-mobile .phone-page-body{
+  padding-top:14px;
+  padding-bottom:82px;
+ }
+ body.subpage-mobile .filter-strip{
+  position:sticky;
+  top:56px;
+  z-index:110;
+  height:42px;
+ }
+ body.subpage-mobile .bottom-nav{z-index:1000}
+ body[data-page="options"] .phone-page-body{
+  padding-left:10px;
+  padding-right:10px;
+  padding-top:12px;
+ }
+ body[data-page="options"] .phone-page-body h1{
+  font-size:19px;
+  margin-bottom:3px;
+ }
+ body[data-page="options"] .phone-sub{
+  margin-bottom:10px;
+ }
+ body[data-page="options"] .options-list{
+  overflow:visible;
+  border-radius:4px;
+ }
+ body[data-page="options"] .option-row{
+  min-height:66px;
+  padding:9px 9px;
+ }
+}
+@media(max-width:430px){
+ body.subpage-mobile .phone-page-head{height:54px}
+ body.subpage-mobile .filter-strip{top:54px;height:40px}
+ body[data-page="options"] .phone-page-body{padding-top:10px}
+ body[data-page="options"] .option-row{
+  grid-template-columns:22px minmax(0,1fr) auto;
+  gap:7px;
+  min-height:62px;
+  padding:8px;
+ }
+ body[data-page="options"] .option-main b{font-size:8.5px}
+ body[data-page="options"] .option-main strong{font-size:14px}
+ body[data-page="options"] .option-main span{font-size:6.5px}
+ body[data-page="options"] .option-go{padding:7px 7px}
+}
+
 </style>
 </head>
 <body>
@@ -876,6 +937,13 @@ function ensureMap(){
  map.addControl(new maplibregl.NavigationControl({showCompass:false}),"bottom-right");
  map.on("click",function(){closeStation()});
  map.on("zoomend",function(){renderMapMarkers()});
+ map.on("styleimagemissing",function(e){
+  try{
+   if(!map.hasImage(e.id)){
+    map.addImage(e.id,{width:1,height:1,data:new Uint8Array([0,0,0,0])},{pixelRatio:1})
+   }
+  }catch(err){}
+ });
  map.on("load",function(){renderMapMarkers()});
  map.on("error",function(){
   var n=$("mapNotice");
@@ -985,7 +1053,20 @@ function closeStation(){
 }
 function isSaved(id){return saved.some(function(x){return String(x.station_id)===String(id)})} function toggleSaved(){if(!current)return;var i=saved.findIndex(function(x){return String(x.station_id)===String(current.station_id)});if(i>=0){saved.splice(i,1);toast("Removed")}else{saved.push({station_id:current.station_id,station_name:current.station_name,brand:current.brand||"",suburb:current.suburb,address:current.address,latitude:current.latitude,longitude:current.longitude,state:prefs.state});toast("Saved")}persist();var t=isSaved(current.station_id)?"Remove saved":"Save";$("stationSave").textContent=t;if($("desktopStationSave"))$("desktopStationSave").textContent=t;renderSaved()}
 function renderSaved(){if(!saved.length){$("savedList").innerHTML='<div class="empty">No saved stations yet.<br>Save the places you use most from Explore.</div>';return}$("savedList").innerHTML='<div class="saved-list">'+saved.map(function(x,i){var live=find(x.station_id)||x,p=Number(live.price);return '<div class="saved-card"><div style="display:flex;align-items:center;gap:8px">'+brandMark(live.brand,live.station_name)+'<div><b>'+esc(live.station_name)+'</b><span>'+esc(live.suburb||"")+(Number.isFinite(p)?" · "+p.toFixed(1)+"¢/L":"")+'</span></div></div><button class="btn btn-soft" onclick="FD.navSaved(&quot;'+esc(live.station_id)+'&quot;)">Navigate</button></div>'}).join("")+'</div>'}
-function showPage(p){Array.from(document.querySelectorAll(".page")).forEach(function(x){x.classList.remove("active")});var pg=$("page-"+p);if(!pg)return;pg.classList.add("active");Array.from(document.querySelectorAll(".nav")).forEach(function(x){x.classList.toggle("active",x.dataset.page===(p==="options"?"explore":p))});if(p==="explore")setTimeout(renderMap,70);if(p==="options")renderOptions();if(p==="saved")renderSaved();if(p==="alerts")alertUI();if(p==="more")moreUI();window.scrollTo(0,0)}
+function showPage(p){
+ Array.from(document.querySelectorAll(".page")).forEach(function(x){x.classList.remove("active")});
+ var pg=$("page-"+p);if(!pg)return;
+ pg.classList.add("active");
+ document.body.dataset.page=p;
+ document.body.classList.toggle("subpage-mobile",p!=="explore");
+ Array.from(document.querySelectorAll(".nav")).forEach(function(x){x.classList.toggle("active",x.dataset.page===(p==="options"?"explore":p))});
+ if(p==="explore")setTimeout(renderMap,70);
+ if(p==="options")renderOptions();
+ if(p==="saved")renderSaved();
+ if(p==="alerts")alertUI();
+ if(p==="more")moreUI();
+ window.scrollTo(0,0)
+}
 function renderOptions(){syncFuel();if($("optionsFuel")){$("optionsFuel").innerHTML=fuels().map(function(f){return "<option>"+f+"</option>"}).join("");$("optionsFuel").value=prefs.fuel}$("optionsRadius").value=String(prefs.radius);$("optionsVehicle").textContent=({car:"Car",ute:"Ute / van",truck:"Truck",heavy:"Heavy truck",custom:"Custom"})[prefs.vehicle]||"Custom";if(!ranked.length){$("optionsList").innerHTML='<div class="empty">Choose an area to compare nearby stations.</div>';return}$("optionsList").innerHTML=ranked.slice(0,25).map(function(x,i){return '<div class="option-row '+(i===0?"best":"")+'"><div class="option-num">'+(i+1)+'</div><div class="option-main"><b>'+esc(x.station_name)+'</b><strong>'+x.price.toFixed(1)+'¢</strong><span>'+x.distance.toFixed(1)+' km · est. '+x.etaMin+' min · '+x.effective.toFixed(1)+'¢ after travel</span>'+(x.saving>0?'<span class="option-save">Save about '+cash(x.saving)+'</span>':"")+'</div><button class="option-go" onclick="FD.nav(&quot;'+esc(x.station_id)+'&quot;)">GO</button></div>'}).join("")}
 function openDrawer(which){var d=$("settingsDrawer");d.classList.add("open");Array.from(document.querySelectorAll(".drawer-panel")).forEach(function(p){p.classList.remove("active")});var p=$("drawer-"+which);if(p)p.classList.add("active");$("drawerTitle").textContent=which==="vehicle"?"Vehicle Settings":which==="fuel"?"Fuel Type":which==="radius"?"Search Radius":"FuelDrop";if(which==="fuel")renderFuelChoices();if(which==="radius")renderRadiusChoices();if(which==="vehicle")moreUI()}
 function closeDrawer(){$("settingsDrawer").classList.remove("open")}
@@ -1026,7 +1107,7 @@ document.addEventListener("keydown",function(e){
 });
 window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();installPrompt=e;installState()});
 window.FD={open:openStation,nav:function(id){navigate(find(id))},navSaved:function(id){navigate(saved.find(function(x){return String(x.station_id)===String(id)}))},options:function(){showPage("options")},drive:function(){if(!summary){toast("Choose an area first");return}$("driveMode").classList.add("open");document.body.classList.add("modal-open");renderDrive()},sheet:function(){$("mobileSheet").classList.toggle("expanded")}};
-function init(){if(STATES.indexOf(prefs.state)<0)prefs.state="NSW";syncFuel();$("radiusSelect").value=String(prefs.radius);if($("mobileRadiusSelect"))$("mobileRadiusSelect").value=String(prefs.radius);syncVehicleLabel();bind();areaText();renderSaved();alertUI();moreUI();if("serviceWorker"in navigator)swreg().catch(function(){});if(loc)load();else{render();openArea()}}
+function init(){if(STATES.indexOf(prefs.state)<0)prefs.state="NSW";document.body.dataset.page="explore";document.body.classList.remove("subpage-mobile");syncFuel();$("radiusSelect").value=String(prefs.radius);if($("mobileRadiusSelect"))$("mobileRadiusSelect").value=String(prefs.radius);syncVehicleLabel();bind();areaText();renderSaved();alertUI();moreUI();if("serviceWorker"in navigator)swreg().catch(function(){});if(loc)load();else{render();openArea()}}
 document.addEventListener("DOMContentLoaded",function(){init();if(location.hash==="#alerts")showPage("alerts")});
 })();
 </script>

@@ -2134,6 +2134,114 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
 }
 </style>
 
+
+<style id="fillmenow-id-clarity-2026-10-06">
+/* Final mobile legibility pass. Preserve the existing original Dash mascot asset. */
+.option-id{
+  display:inline-flex;
+  align-items:center;
+  max-width:100%;
+  width:max-content;
+  margin-top:5px;
+  padding:4px 8px;
+  border-radius:8px;
+  background:#e9f9ee;
+  color:#087532;
+  font-size:10px;
+  line-height:1;
+  font-weight:950;
+  letter-spacing:.15px;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.station-mini.id-mini{
+  grid-column:1/-1;
+  background:#effbf2;
+  border:1px solid #cee9d5;
+}
+.station-mini.id-mini b{
+  font-weight:950;
+  letter-spacing:.15px;
+  overflow-wrap:anywhere;
+}
+#desktopStationMetrics .station-mini.id-mini b{font-size:14px}
+@media(max-width:900px){
+  /* Keep every options row separated even when IDs or metadata wrap. */
+  body[data-page="options"] .option-row{
+    min-height:108px!important;
+    align-items:center!important;
+    row-gap:8px!important;
+  }
+  body[data-page="options"] .option-main{
+    display:flex!important;
+    min-width:0!important;
+    flex-direction:column!important;
+    align-items:flex-start!important;
+    justify-content:center!important;
+  }
+  body[data-page="options"] .option-id{
+    min-height:29px!important;
+    margin-top:5px!important;
+    padding:6px 9px!important;
+    border-radius:9px!important;
+    font-size:14px!important;
+    line-height:17px!important;
+  }
+  body[data-page="options"] .option-main strong{
+    margin-top:7px!important;
+  }
+  body[data-page="options"] .option-go{
+    align-self:center!important;
+  }
+
+  /* Station ID gets its own full-width row so it cannot collide with prices or ETA. */
+  #stationModal .station-mini.id-mini{
+    grid-column:1/-1!important;
+    min-height:66px!important;
+    padding:12px 14px!important;
+  }
+  #stationModal .station-mini.id-mini span{
+    font-size:9px!important;
+  }
+  #stationModal .station-mini.id-mini b{
+    font-size:18px!important;
+    line-height:1.08!important;
+    margin-top:6px!important;
+  }
+
+  /* Reinforce the approved map geometry: map fills the viewport behind the sheet. */
+  #page-explore .explore{padding-bottom:64px!important}
+  #page-explore .map-shell{
+    height:calc(100dvh - 142px)!important;
+    min-height:0!important;
+    background:#e8eee8!important;
+  }
+  #page-explore .map{
+    height:100%!important;
+    min-height:0!important;
+  }
+
+  /* When collapsed, nothing except the existing Dash artwork remains visible. */
+  #page-explore .mobile-sheet.is-collapsed{
+    background:transparent!important;
+    border:0!important;
+    box-shadow:none!important;
+  }
+  #page-explore .mobile-sheet.is-collapsed .sheet-peek>*{
+    display:none!important;
+  }
+}
+@media(max-width:430px){
+  body[data-page="options"] .option-row{
+    min-height:112px!important;
+  }
+  body[data-page="options"] .option-id{
+    font-size:13px!important;
+    min-height:28px!important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -2598,7 +2706,7 @@ async function search(q){
 
 function find(id){return ranked.find(function(x){return String(x.station_id)===String(id)})||rows.find(function(x){return String(x.station_id)===String(id)})||saved.find(function(x){return String(x.station_id)===String(id)})}
 function navigate(x){if(x)window.open("https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(x.latitude+","+x.longitude),"_blank","noopener")}
-function stationMetricsHtml(x,d){var m=[];if(Number.isFinite(+x.price))m.push(["Price",(+x.price).toFixed(1)+"¢/L"]);if(Number.isFinite(d))m.push(["Distance",d.toFixed(1)+" km"]);if(Number.isFinite(+x.effective))m.push(["After travel",(+x.effective).toFixed(1)+"¢/L"]);if(Number.isFinite(+x.saving)&&x.saving>0)m.push(["Est. saving",cash(x.saving)]);return m.map(function(z){return '<div class="station-mini '+(z[0]==="Price"?"price-mini":"")+'"><span>'+z[0]+'</span><b class="'+(z[0]==="Price"?"fuel-price":"")+'">'+(z[0]==="Price"?brandMark(x.brand,x.station_name):"")+z[1]+'</b></div>'}).join("")}
+function stationMetricsHtml(x,d){var m=[],sid=x.station_id===undefined||x.station_id===null?"":String(x.station_id);if(sid)m.push(["Station ID",sid,"id-mini"]);if(Number.isFinite(+x.price))m.push(["Price",(+x.price).toFixed(1)+"¢/L","price-mini"]);if(Number.isFinite(d))m.push(["Distance",d.toFixed(1)+" km",""]);if(Number.isFinite(+x.effective))m.push(["After travel",(+x.effective).toFixed(1)+"¢/L",""]);if(Number.isFinite(+x.saving)&&x.saving>0)m.push(["Est. saving",cash(x.saving),""]);return m.map(function(z){var isPrice=z[0]==="Price",extra=z[2]||"";return '<div class="station-mini '+extra+'"><span>'+esc(z[0])+'</span><b class="'+(isPrice?"fuel-price":"")+'">'+(isPrice?brandMark(x.brand,x.station_name):"")+esc(z[1])+'</b></div>'}).join("")}
 function openStation(id){
  var x=find(id);if(!x)return;current=x;
  var d=Number.isFinite(x.distance)?x.distance:(loc?dkm(loc.lat,loc.lng,x.latitude,x.longitude):NaN),addr=[x.address,x.suburb,x.postcode].filter(Boolean).join(" · "),metrics=stationMetricsHtml(x,d),saveText=isSaved(x.station_id)?"Remove saved":"Save";
@@ -2645,7 +2753,7 @@ function showPage(p){
  if(p==="more")moreUI();
  window.scrollTo(0,0)
 }
-function renderOptions(){syncFuel();if($("optionsFuel")){$("optionsFuel").innerHTML=fuels().map(function(f){return "<option>"+f+"</option>"}).join("");$("optionsFuel").value=prefs.fuel}$("optionsRadius").value=String(prefs.radius);var ov=({car:"Car",ute:"Ute / van",truck:"Truck",heavy:"Heavy truck",custom:"Custom"})[prefs.vehicle]||"Custom";$("optionsVehicle").innerHTML='<span>Vehicle</span><b>'+esc(ov)+'</b>';if($("optionsSummary"))$("optionsSummary").textContent=ranked.length?ranked.length+" stations within "+prefs.radius+" km · ranked by estimated total trip cost.":"Ranked by estimated total trip cost using your vehicle settings.";if(!ranked.length){$("optionsList").innerHTML='<div class="empty" role="status">'+esc(priceStatus==="loading"?"Loading nearby fuel prices…":priceStatus==="error"?"Fuel prices could not be loaded. Try Refresh.":loc?"No stations found in this radius. Try a wider search.":"Choose an area to compare nearby stations.")+'</div>';return}$("optionsList").innerHTML=ranked.map(function(x,i){return '<div class="option-row '+(i===0?"best":"")+'"><div class="option-brand">'+brandRank(x.brand,x.station_name,i+1)+'</div><div class="option-main"><b>'+esc(x.station_name)+'</b><strong>'+x.price.toFixed(1)+'¢</strong><span>'+x.distance.toFixed(1)+' km · est. '+x.etaMin+' min · '+x.effective.toFixed(1)+'¢ after travel</span>'+(x.saving>0?'<span class="option-save">Save about '+cash(x.saving)+'</span>':"")+'</div><button class="option-go" onclick="FD.nav(&quot;'+esc(x.station_id)+'&quot;)">GO</button></div>'}).join("")}
+function renderOptions(){syncFuel();if($("optionsFuel")){$("optionsFuel").innerHTML=fuels().map(function(f){return "<option>"+f+"</option>"}).join("");$("optionsFuel").value=prefs.fuel}$("optionsRadius").value=String(prefs.radius);var ov=({car:"Car",ute:"Ute / van",truck:"Truck",heavy:"Heavy truck",custom:"Custom"})[prefs.vehicle]||"Custom";$("optionsVehicle").innerHTML='<span>Vehicle</span><b>'+esc(ov)+'</b>';if($("optionsSummary"))$("optionsSummary").textContent=ranked.length?ranked.length+" stations within "+prefs.radius+" km · ranked by estimated total trip cost.":"Ranked by estimated total trip cost using your vehicle settings.";if(!ranked.length){$("optionsList").innerHTML='<div class="empty" role="status">'+esc(priceStatus==="loading"?"Loading nearby fuel prices…":priceStatus==="error"?"Fuel prices could not be loaded. Try Refresh.":loc?"No stations found in this radius. Try a wider search.":"Choose an area to compare nearby stations.")+'</div>';return}$("optionsList").innerHTML=ranked.map(function(x,i){var sid=x.station_id===undefined||x.station_id===null?"":String(x.station_id);return '<div class="option-row '+(i===0?"best":"")+'"><div class="option-brand">'+brandRank(x.brand,x.station_name,i+1)+'</div><div class="option-main"><b>'+esc(x.station_name)+'</b>'+(sid?'<span class="option-id">ID '+esc(sid)+'</span>':"")+'<strong>'+x.price.toFixed(1)+'¢</strong><span>'+x.distance.toFixed(1)+' km · est. '+x.etaMin+' min · '+x.effective.toFixed(1)+'¢ after travel</span>'+(x.saving>0?'<span class="option-save">Save about '+cash(x.saving)+'</span>':"")+'</div><button class="option-go" onclick="FD.nav(&quot;'+esc(x.station_id)+'&quot;)">GO</button></div>'}).join("")}
 function openDrawer(which){var d=$("settingsDrawer");d.classList.add("open");Array.from(document.querySelectorAll(".drawer-panel")).forEach(function(p){p.classList.remove("active")});var p=$("drawer-"+which);if(p)p.classList.add("active");$("drawerTitle").textContent=which==="vehicle"?"Vehicle Settings":which==="fuel"?"Fuel Type":which==="radius"?"Search Radius":"FillMeNow";if(which==="fuel")renderFuelChoices();if(which==="radius")renderRadiusChoices();if(which==="vehicle")moreUI()}
 function closeDrawer(){$("settingsDrawer").classList.remove("open")}
 function renderFuelChoices(){var el=$("fuelChoices");el.innerHTML=fuels().map(function(f){return '<button class="drawer-choice '+(f===prefs.fuel?"active":"")+'" data-fuel="'+esc(f)+'"><span>'+esc(f)+'</span><span>'+(f===prefs.fuel?"✓":"")+'</span></button>'}).join("");Array.from(el.querySelectorAll("[data-fuel]")).forEach(function(b){b.onclick=function(){prefs.fuel=this.dataset.fuel;persist();syncFuel();load();moreUI();closeDrawer()}})}

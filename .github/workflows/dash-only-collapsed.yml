@@ -1,0 +1,86 @@
+name: Dash-only collapsed handle
+
+on:
+  push:
+    branches:
+      - migration/fillmenow-canonical
+    paths:
+      - .github/workflows/dash-only-collapsed.yml
+      - .github/dash-only-handle-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: migration/fillmenow-canonical
+          fetch-depth: 0
+      - name: Make collapsed Best Stop mascot-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          file='web/assets/maplibre.css'
+          marker='DASH_ONLY_COLLAPSED_HANDLE_2026_10_06'
+          if grep -q "$marker" "$file"; then
+            echo 'Patch already present.'
+            exit 0
+          fi
+          cat >> "$file" <<'CSS'
+
+          /* DASH_ONLY_COLLAPSED_HANDLE_2026_10_06 */
+          @media(max-width:900px){
+            .mobile-sheet.is-collapsed{
+              background:transparent!important;
+              border:0!important;
+              box-shadow:none!important;
+              pointer-events:none!important;
+            }
+            .mobile-sheet.is-collapsed .sheet-handle,
+            .mobile-sheet.is-collapsed .sheet-main,
+            .mobile-sheet.is-collapsed .sheet-expand{
+              opacity:0!important;
+              pointer-events:none!important;
+            }
+            .mobile-sheet.is-collapsed .sheet-peek{
+              left:auto!important;
+              right:10px!important;
+              top:-12px!important;
+              width:96px!important;
+              height:82px!important;
+              padding:0!important;
+              gap:0!important;
+              overflow:visible!important;
+              opacity:1!important;
+              pointer-events:auto!important;
+              background:transparent!important;
+              touch-action:none!important;
+              cursor:grab!important;
+            }
+            .mobile-sheet.is-collapsed .sheet-peek:active{cursor:grabbing!important}
+            .mobile-sheet.is-collapsed .sheet-peek>span{display:none!important}
+            .mobile-sheet.is-collapsed .sheet-peek:after{
+              right:0!important;
+              top:-18px!important;
+              width:94px!important;
+              height:76px!important;
+              opacity:1!important;
+              transform:translateY(0)!important;
+              filter:drop-shadow(0 7px 8px rgba(0,0,0,.16))!important;
+            }
+          }
+          CSS
+      - name: Commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add web/assets/maplibre.css
+          git commit -m 'Make collapsed Best Stop mascot-only'
+          git push origin HEAD:migration/fillmenow-canonical

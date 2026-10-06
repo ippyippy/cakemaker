@@ -1772,6 +1772,265 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
 }
 </style>
 
+
+<style id="fillmenow-visual-repair-pass2-2026-10-06">
+@media (max-width:900px){
+  /* Make collapsed Dash visibly follow the user's drag back upward. */
+  #page-explore .mobile-sheet.is-collapsed{
+    transform:translateY(var(--sheet-drag-y))!important;
+  }
+
+  /* Expanded Best Stop: clearer hierarchy and consistent touch targets. */
+  #page-explore .mobile-sheet:not(.is-collapsed){
+    border-radius:16px 16px 0 0!important;
+  }
+  #page-explore .mobile-sheet:not(.is-collapsed) .sheet-main{
+    padding:13px 16px 14px!important;
+  }
+  #page-explore .mobile-sheet:not(.is-collapsed) .sheet-handle{
+    width:44px!important;
+    height:5px!important;
+    margin:8px auto 2px!important;
+  }
+  #page-explore .sheet-label{
+    font-size:7.5px!important;
+  }
+  #page-explore .sheet-station{
+    font-size:12px!important;
+    line-height:1.2!important;
+  }
+  #page-explore .sheet-price{
+    font-size:31px!important;
+    line-height:1!important;
+  }
+  #page-explore .sheet-meta{
+    font-size:8.5px!important;
+    line-height:1.35!important;
+  }
+  #page-explore .sheet-save b{
+    font-size:13px!important;
+  }
+  #page-explore .sheet-save span{
+    font-size:7.5px!important;
+  }
+  #page-explore .sheet-go{
+    min-height:44px!important;
+    font-size:10px!important;
+  }
+  #page-explore .sheet-options-link{
+    min-height:38px!important;
+    font-size:9px!important;
+  }
+
+  /* Saved: bring it to the same scale and spacing as Nearby Options. */
+  #page-saved .phone-page-body{
+    padding-top:18px!important;
+  }
+  #page-saved .phone-page-body h1{
+    font-size:29px!important;
+    line-height:1.05!important;
+    letter-spacing:-1px!important;
+    margin-bottom:6px!important;
+  }
+  #page-saved .phone-sub{
+    font-size:10px!important;
+    line-height:1.4!important;
+    margin-bottom:15px!important;
+  }
+  #page-saved .saved-list{
+    border-radius:12px!important;
+  }
+  #page-saved .saved-card{
+    min-height:78px!important;
+    padding:12px 14px!important;
+    gap:12px!important;
+    align-items:center!important;
+  }
+  #page-saved .saved-card>div{
+    min-width:0!important;
+  }
+  #page-saved .saved-card .brand-mark{
+    width:40px!important;
+    height:40px!important;
+    border-radius:8px!important;
+    flex:0 0 40px!important;
+  }
+  #page-saved .saved-card b{
+    font-size:11px!important;
+    line-height:1.2!important;
+    white-space:normal!important;
+  }
+  #page-saved .saved-card span{
+    font-size:8.5px!important;
+    line-height:1.35!important;
+  }
+  #page-saved .saved-card .btn{
+    min-width:78px!important;
+    min-height:40px!important;
+    padding:9px 12px!important;
+    font-size:9px!important;
+  }
+  #page-saved .empty{
+    min-height:220px!important;
+    padding:28px 20px!important;
+    border-radius:12px!important;
+    font-size:10px!important;
+    line-height:1.5!important;
+  }
+  #page-saved .dash-empty img{
+    width:104px!important;
+    height:82px!important;
+  }
+  #page-saved .add-station-btn{
+    min-height:46px!important;
+    margin-top:12px!important;
+    border-radius:9px!important;
+    font-size:10px!important;
+  }
+
+  /* Station details: prevent dense/small text and buttons from bunching. */
+  #stationModal .best-detail-head{
+    height:60px!important;
+    padding:0 14px!important;
+  }
+  #stationModal .best-detail-head .mini-wordmark{
+    font-size:19px!important;
+  }
+  #stationModal .best-detail-card{
+    padding:17px 18px 20px!important;
+    overflow:auto!important;
+  }
+  #stationModal .best-detail-card h2{
+    display:flex!important;
+    align-items:center!important;
+    gap:10px!important;
+    font-size:20px!important;
+    line-height:1.15!important;
+    margin:9px 0 5px!important;
+  }
+  #stationModal .best-detail-card h2 .brand-mark{
+    width:42px!important;
+    height:42px!important;
+    flex:0 0 42px!important;
+    border-radius:8px!important;
+  }
+  #stationModal .best-detail-card>p{
+    font-size:10px!important;
+    line-height:1.4!important;
+    margin-bottom:14px!important;
+  }
+  #stationModal .station-grid{
+    gap:9px!important;
+    margin:12px 0!important;
+  }
+  #stationModal .station-mini{
+    min-height:74px!important;
+    padding:12px!important;
+    border-radius:10px!important;
+  }
+  #stationModal .station-mini span{
+    font-size:8.5px!important;
+  }
+  #stationModal .station-mini b{
+    font-size:14px!important;
+    line-height:1.15!important;
+    margin-top:5px!important;
+  }
+  #stationModal .station-mini .brand-mark{
+    width:30px!important;
+    height:30px!important;
+    border-radius:6px!important;
+  }
+  #stationModal .best-detail-go{
+    min-height:48px!important;
+    border-radius:9px!important;
+    font-size:11px!important;
+  }
+  #stationModal .detail-bottom-actions{
+    gap:9px!important;
+    margin-top:10px!important;
+  }
+  #stationModal .detail-bottom-actions .btn{
+    min-height:44px!important;
+    font-size:9px!important;
+    border-radius:8px!important;
+  }
+
+  /* Settings drawers: same mobile rhythm as the rest of the app. */
+  .settings-drawer .drawer-head{
+    height:64px!important;
+    min-height:64px!important;
+    padding:0 16px!important;
+  }
+  .settings-drawer .drawer-head b{
+    font-size:14px!important;
+  }
+  .settings-drawer .drawer-body{
+    padding:18px!important;
+  }
+  .settings-drawer .drawer-panel h2{
+    font-size:25px!important;
+    line-height:1.1!important;
+    margin-bottom:8px!important;
+  }
+  .settings-drawer .drawer-panel p,
+  .settings-drawer .info-copy{
+    font-size:10px!important;
+    line-height:1.5!important;
+  }
+  .settings-drawer .drawer-choice-list{
+    border-radius:12px!important;
+  }
+  .settings-drawer .drawer-choice{
+    min-height:58px!important;
+    padding:14px 16px!important;
+    font-size:11px!important;
+  }
+  .settings-drawer .preset-row{
+    gap:8px!important;
+  }
+  .settings-drawer .preset{
+    min-height:42px!important;
+    font-size:9px!important;
+    border-radius:8px!important;
+  }
+  .settings-drawer .field label{
+    font-size:8px!important;
+  }
+  .settings-drawer .field input,
+  .settings-drawer .field select{
+    min-height:44px!important;
+    font-size:11px!important;
+    border-radius:8px!important;
+  }
+  .settings-drawer .full-btn{
+    min-height:46px!important;
+    font-size:10px!important;
+    border-radius:8px!important;
+  }
+
+  /* Avoid map controls and attribution colliding with bottom overlays. */
+  #page-explore .maplibregl-ctrl-bottom-right{
+    bottom:10px!important;
+    right:104px!important;
+  }
+  #page-explore .maplibregl-ctrl-attrib{
+    max-width:54vw!important;
+    font-size:7.5px!important;
+    line-height:1.2!important;
+  }
+}
+@media (max-width:430px){
+  #stationModal .best-detail-map{
+    height:25dvh!important;
+    min-height:128px!important;
+  }
+  #stationModal .best-detail-card{
+    max-height:calc(75dvh - 60px)!important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div class="app">

@@ -1,0 +1,97 @@
+name: Apply collapsible Dash Best Stop sheet
+
+on:
+  push:
+    branches:
+      - migration/fillmenow-canonical
+    paths:
+      - .github/workflows/apply-best-stop-sheet.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-best-stop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: migration/fillmenow-canonical
+      - name: Patch Best Stop mobile sheet
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('web/index.html')
+          s = p.read_text()
+
+          marker = 'BEST_STOP_COLLAPSIBLE_TAB_2026_10_06'
+          css = r'''
+          /* BEST_STOP_COLLAPSIBLE_TAB_2026_10_06 */
+          @media(max-width:900px){
+            .mobile-sheet{--sheet-drag-y:0px;--sheet-peek-h:64px;transform:translateY(var(--sheet-drag-y))!important;transition:transform .24s cubic-bezier(.2,.75,.25,1),box-shadow .2s!important;will-change:transform;overflow:visible!important}
+            .mobile-sheet.is-dragging{transition:none!important}
+            .mobile-sheet.is-collapsed{transform:translateY(calc(100% - var(--sheet-peek-h) + var(--sheet-drag-y)))!important;box-shadow:0 -8px 24px rgba(0,0,0,.12)!important}
+            .sheet-handle{display:block!important;width:42px!important;height:5px!important;margin:8px auto 4px!important;background:#c9cfca!important;border-radius:999px!important;position:relative!important;z-index:8!important;cursor:grab!important;touch-action:none!important}
+            .sheet-handle:after{content:"";position:absolute;inset:-12px -28px}
+            .sheet-main{touch-action:pan-x!important;transition:opacity .14s}
+            .sheet-peek{display:flex;position:absolute;left:16px;right:16px;top:17px;height:40px;align-items:center;gap:8px;opacity:0;pointer-events:none;transition:opacity .12s;z-index:7;touch-action:none}
+            .mobile-sheet.is-collapsed .sheet-peek{opacity:1;pointer-events:auto}
+            .mobile-sheet.is-collapsed .sheet-main,.mobile-sheet.is-collapsed .sheet-expand{opacity:0;pointer-events:none}
+            .sheet-peek .peek-dash{display:inline-flex;align-items:center;justify-content:center;background:var(--green);color:#101710;border-radius:999px;padding:5px 9px;font-size:8px;font-weight:950;letter-spacing:.2px;white-space:nowrap}
+            .sheet-peek .peek-title{font-size:12px;font-weight:900;color:var(--ink);min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+            .sheet-peek .peek-chevron{font-size:18px;font-weight:950;color:#69736c;line-height:1}
+          }
+          '''
+          if marker not in s:
+              s = s.replace('</style>', css + '\n</style>', 1)
+
+          old_html = ''' <div class="mobile-sheet" id="mobileSheet">\n  <div class="sheet-handle" id="sheetHandle"></div>\n  <div class="sheet-main" id="sheetMain">'''
+          new_html = ''' <div class="mobile-sheet" id="mobileSheet">\n  <div class="sheet-handle" id="sheetHandle" aria-label="Swipe or tap to collapse Best Stop" aria-expanded="true"></div>\n  <div class="sheet-peek" id="sheetPeek" role="button" tabindex="0" aria-label="Expand Best Stop"><span class="peek-dash">DASH</span><span class="peek-title">Best Stop</span><span class="peek-chevron">⌃</span></div>\n  <div class="sheet-main" id="sheetMain">'''
+          if 'id="sheetPeek"' not in s:
+              assert old_html in s, 'Best Stop sheet HTML anchor changed'
+              s = s.replace(old_html, new_html, 1)
+
+          old_handler = '$("sheetHandle").onclick=function(){$("mobileSheet").classList.toggle("expanded")};'
+          new_handler = '$("sheetHandle").onclick=function(){if(this.dataset.skipClick==="1"){this.dataset.skipClick="0";return}setSheetCollapsed(!$("mobileSheet").classList.contains("is-collapsed"))};if($("sheetPeek")){$("sheetPeek").onclick=function(){setSheetCollapsed(false)};$("sheetPeek").onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();setSheetCollapsed(false)}}}installSheetGestures();'
+          if old_handler in s:
+              s = s.replace(old_handler, new_handler, 1)
+
+          old_fd = 'window.FD={refresh:load,area:openArea,open:openStation,nav:function(id){navigate(find(id))},navSaved:function(id){navigate(saved.find(function(x){return String(x.station_id)===String(id)}))},options:function(){showPage("options")},drive:function(){if(!summary){toast("Choose an area first");return}$("driveMode").classList.add("open");document.body.classList.add("modal-open");renderDrive()},sheet:function(){$("mobileSheet").classList.toggle("expanded")}};'
+          new_fd = r'''function setSheetCollapsed(collapsed){
+           var sheet=$("mobileSheet");if(!sheet)return;
+           sheet.style.setProperty("--sheet-drag-y","0px");sheet.classList.toggle("is-collapsed",!!collapsed);
+           var handle=$("sheetHandle");if(handle)handle.setAttribute("aria-expanded",collapsed?"false":"true");
+          }
+          function installSheetGestures(){
+           var sheet=$("mobileSheet"),handle=$("sheetHandle"),main=$("sheetMain"),peek=$("sheetPeek");if(!sheet||sheet.dataset.gestureReady==="1")return;
+           sheet.dataset.gestureReady="1";var startY=0,lastY=0,dragging=false,dragged=false,pointerId=null;
+           function canStart(e){return !e.target.closest("button,a,input,select,textarea")||e.target===handle||e.target.closest("#sheetPeek")}
+           function start(e){if(e.pointerType==="mouse"&&e.button!==0)return;if(!canStart(e))return;dragging=true;dragged=false;pointerId=e.pointerId;startY=lastY=e.clientY;sheet.classList.add("is-dragging")}
+           function move(e){if(!dragging||e.pointerId!==pointerId)return;lastY=e.clientY;var dy=lastY-startY,collapsed=sheet.classList.contains("is-collapsed");if((!collapsed&&dy>0)||(collapsed&&dy<0))sheet.style.setProperty("--sheet-drag-y",Math.max(-120,Math.min(170,dy))+"px");else sheet.style.setProperty("--sheet-drag-y","0px");if(Math.abs(dy)>6){dragged=true;e.preventDefault()}}
+           function end(e){if(!dragging||e.pointerId!==pointerId)return;var dy=lastY-startY,collapsed=sheet.classList.contains("is-collapsed");dragging=false;sheet.classList.remove("is-dragging");sheet.style.setProperty("--sheet-drag-y","0px");pointerId=null;if(dragged&&handle)handle.dataset.skipClick="1";if(!collapsed&&dy>42)setSheetCollapsed(true);else if(collapsed&&dy < -36)setSheetCollapsed(false)}
+           [handle,main,peek].filter(Boolean).forEach(function(el){el.addEventListener("pointerdown",start)});window.addEventListener("pointermove",move,{passive:false});window.addEventListener("pointerup",end);window.addEventListener("pointercancel",end)
+          }
+
+          window.FD={refresh:load,area:openArea,open:openStation,nav:function(id){navigate(find(id))},navSaved:function(id){navigate(saved.find(function(x){return String(x.station_id)===String(id)}))},options:function(){showPage("options")},drive:function(){if(!summary){toast("Choose an area first");return}$("driveMode").classList.add("open");document.body.classList.add("modal-open");renderDrive()},sheet:function(){setSheetCollapsed(!$("mobileSheet").classList.contains("is-collapsed"))}};'''
+          if old_fd in s:
+              s = s.replace(old_fd, new_fd, 1)
+
+          assert marker in s
+          assert 'id="sheetPeek"' in s
+          assert 'function setSheetCollapsed' in s
+          assert 'installSheetGestures();' in s
+          p.write_text(s)
+          PY
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "FillMeNow Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add web/index.html
+          if git diff --cached --quiet; then
+            echo "No changes required"
+            exit 0
+          fi
+          git commit -m "Fix collapsible Dash Best Stop sheet"
+          git push origin HEAD:migration/fillmenow-canonical

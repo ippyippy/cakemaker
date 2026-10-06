@@ -1,0 +1,65 @@
+name: FillMeNow map collapse polish
+
+on:
+  push:
+    branches:
+      - migration/fillmenow-canonical
+    paths:
+      - .github/workflows/fillmenow-map-collapse-polish.yml
+
+permissions:
+  contents: write
+
+jobs:
+  polish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: migration/fillmenow-canonical
+      - name: Fill map viewport and add Dash peek
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('web/index.html')
+          s = p.read_text(encoding='utf-8')
+
+          old_map = '#page-explore .map{height:calc(100dvh - 350px)!important;min-height:360px!important;border-radius:0!important}'
+          new_map = '#page-explore .map{height:calc(100dvh - 148px)!important;min-height:0!important;border-radius:0!important}'
+          if old_map in s:
+              s = s.replace(old_map, new_map, 1)
+          elif new_map not in s:
+              raise SystemExit('Could not find approved mobile map sizing rule')
+
+          marker = '/* BEST_STOP_COLLAPSED_MAP_AND_DASH_PEEK_2026_10_06 */'
+          if marker not in s:
+              match = re.search(r'\.sheet-main:before\{.*?background-image:url\("([^"]+)"\)', s, re.S)
+              if not match:
+                  raise SystemExit('Could not locate Dash mascot asset')
+              dash = match.group(1)
+              css = f'''\n\n{marker}\n@media(max-width:900px){{\n  #page-explore .map-shell{{height:calc(100dvh - 148px)!important;min-height:0!important;background:#eef3ed!important}}\n  #page-explore .map{{height:100%!important;min-height:0!important}}\n  .mobile-sheet.is-collapsed .sheet-peek{{padding-right:96px!important;overflow:visible!important}}\n  .sheet-peek:after{{\n    content:\"\";position:absolute;right:8px;top:-48px;width:82px;height:66px;\n    background-image:url(\"{dash}\");background-size:cover;background-position:center top;background-repeat:no-repeat;\n    border-radius:22px 22px 12px 12px;filter:drop-shadow(0 6px 8px rgba(0,0,0,.13));\n    opacity:0;transform:translateY(9px);transition:opacity .16s ease,transform .2s ease;pointer-events:none;z-index:10;\n  }}\n  .mobile-sheet.is-collapsed .sheet-peek:after{{opacity:1;transform:translateY(0)}}\n}}\n'''
+              s = s.replace('\n</style>', css + '\n</style>', 1)
+
+          old_toggle = 'sheet.style.setProperty("--sheet-drag-y","0px");sheet.classList.toggle("is-collapsed",!!collapsed);'
+          new_toggle = 'sheet.style.setProperty("--sheet-drag-y","0px");sheet.classList.toggle("is-collapsed",!!collapsed);setTimeout(function(){try{if(map){map.resize();renderMapMarkers()}}catch(e){}},280);'
+          if old_toggle in s:
+              s = s.replace(old_toggle, new_toggle, 1)
+          elif new_toggle not in s:
+              raise SystemExit('Could not find Best Stop collapse toggle')
+
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit source update
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/index.html
+          git diff --cached --check
+          if ! git diff --cached --quiet; then
+            git commit -m "Fill mobile map and add Dash collapsed-tab peek"
+            git push origin HEAD:migration/fillmenow-canonical
+          fi

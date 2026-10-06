@@ -1,0 +1,84 @@
+name: Migrate FillMeNow canonical source
+
+on:
+  push:
+    branches:
+      - migration/fillmenow-canonical
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  consolidate:
+    if: ${{ !contains(github.event.head_commit.message || '', '[fillmenow-consolidated]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out full repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build FillMeNow-only repository layout
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          tmp_ref="$(mktemp -d)"
+          git archive origin/ui/reference-lock-2026-10-06 ios-fillmenow | tar -x -C "$tmp_ref"
+
+          rm -rf android ios web
+          mv android-fueldrop android
+          mv "$tmp_ref/ios-fillmenow" ios
+
+          mkdir -p web/.well-known web/assets web/icons
+          curl --fail --location --retry 3 https://fillmenow.vercel.app/ -o web/index.html
+          curl --fail --location --retry 3 https://fillmenow.vercel.app/.well-known/assetlinks.json -o web/.well-known/assetlinks.json
+          curl --fail --location --retry 3 https://fillmenow.vercel.app/assets/maplibre-LICENSE.txt -o web/assets/maplibre-LICENSE.txt
+          curl --fail --location --retry 3 https://fillmenow.vercel.app/assets/maplibre.css -o web/assets/maplibre.css
+          curl --fail --location --retry 3 https://fillmenow.vercel.app/assets/maplibre.js -o web/assets/maplibre.js
+          curl --fail --location --retry 3 https://fillmenow.vercel.app/icon.svg -o web/icon.svg
+          curl --fail --location --retry 3 https://fillmenow.vercel.app/icons/icon-192.png -o web/icons/icon-192.png
+          curl --fail --location --retry 3 https://fillmenow.vercel.app/icons/icon-512.png -o web/icons/icon-512.png
+          curl --fail --location --retry 3 https://fillmenow.vercel.app/icons/icon-maskable-512.png -o web/icons/icon-maskable-512.png
+          curl --fail --location --retry 3 https://fillmenow.vercel.app/manifest.webmanifest -o web/manifest.webmanifest
+          curl --fail --location --retry 3 https://fillmenow.vercel.app/privacy.html -o web/privacy.html
+          curl --fail --location --retry 3 https://fillmenow.vercel.app/sw.js -o web/sw.js
+          curl --fail --location --retry 3 https://fillmenow.vercel.app/terms.html -o web/terms.html
+
+          cat > web/vercel.json <<'JSON'
+          {
+            "cleanUrls": true,
+            "headers": [
+              {
+                "source": "/sw.js",
+                "headers": [
+                  { "key": "Cache-Control", "value": "no-cache" },
+                  { "key": "Service-Worker-Allowed", "value": "/" }
+                ]
+              },
+              {
+                "source": "/manifest.webmanifest",
+                "headers": [
+                  { "key": "Content-Type", "value": "application/manifest+json" }
+                ]
+              }
+            ]
+          }
+          JSON
+
+          rm -rf fueldrop ios-fillmenow
+          rm -f index.html
+          rm -f .github/workflows/fueldrop-*.yml
+          rm -f .github/workflows/migrate-fillmenow-canonical.yml
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No migration changes required"
+            exit 0
+          fi
+          git commit -m "[fillmenow-consolidated] Consolidate FillMeNow source layout"
+          git push origin HEAD:migration/fillmenow-canonical

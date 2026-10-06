@@ -1359,6 +1359,419 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
 }
 
 </style>
+
+<style id="fillmenow-visual-repair-2026-10-06">
+/* Mobile visual repair pass based on device screenshots: spacing, type scale, overlaps and dead space. */
+@media (max-width:900px){
+  /* Shared page geometry */
+  body.subpage-mobile{background:#fff!important}
+  body.subpage-mobile .phone-page{background:#fff!important;min-height:calc(100dvh - 64px)!important}
+  body.subpage-mobile .phone-page-head{
+    height:64px!important;
+    min-height:64px!important;
+    padding:0 18px!important;
+  }
+  body.subpage-mobile .mini-wordmark{
+    font-size:22px!important;
+    letter-spacing:-.9px!important;
+  }
+  body.subpage-mobile .mini-wordmark:before{
+    font-size:10px!important;
+    margin-right:7px!important;
+  }
+  body.subpage-mobile .phone-page-body{
+    padding:18px 18px 84px!important;
+    max-width:680px!important;
+  }
+
+  /* Nearby Options: make IDs/ranks and station information readable and never overlapping */
+  body[data-page="options"] .filter-strip{
+    top:64px!important;
+    height:56px!important;
+    min-height:56px!important;
+    box-shadow:0 1px 0 #e5e9e4!important;
+  }
+  body[data-page="options"] .filter-strip>*{
+    height:56px!important;
+    padding:7px 14px!important;
+    justify-content:center!important;
+  }
+  body[data-page="options"] .filter-strip span{
+    font-size:7.5px!important;
+    line-height:1.1!important;
+    letter-spacing:.55px!important;
+  }
+  body[data-page="options"] .filter-strip select,
+  body[data-page="options"] .filter-strip b{
+    font-size:11px!important;
+    line-height:1.2!important;
+  }
+  body[data-page="options"] .phone-page-body{
+    padding-top:18px!important;
+  }
+  body[data-page="options"] .phone-page-body h1{
+    font-size:31px!important;
+    line-height:1.02!important;
+    letter-spacing:-1.2px!important;
+    margin-bottom:7px!important;
+  }
+  body[data-page="options"] .phone-sub{
+    font-size:10.5px!important;
+    line-height:1.42!important;
+    margin-bottom:16px!important;
+  }
+  body[data-page="options"] .options-list{
+    border-radius:12px!important;
+    overflow:hidden!important;
+  }
+  body[data-page="options"] .option-row{
+    grid-template-columns:70px minmax(0,1fr) 52px!important;
+    gap:11px!important;
+    min-height:90px!important;
+    padding:12px 12px!important;
+    align-items:center!important;
+  }
+  body[data-page="options"] .option-brand{
+    width:70px!important;
+    justify-self:start!important;
+  }
+  body[data-page="options"] .brand-rank{
+    position:relative!important;
+    width:70px!important;
+    height:46px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    gap:7px!important;
+  }
+  body[data-page="options"] .brand-rank-number{
+    position:static!important;
+    order:-1!important;
+    flex:0 0 24px!important;
+    width:24px!important;
+    min-width:24px!important;
+    height:24px!important;
+    padding:0!important;
+    border:0!important;
+    border-radius:50%!important;
+    font-size:11px!important;
+    line-height:24px!important;
+    text-align:center!important;
+  }
+  body[data-page="options"] .brand-rank .brand-mark{
+    position:static!important;
+    width:40px!important;
+    height:40px!important;
+    flex:0 0 40px!important;
+    border-radius:8px!important;
+  }
+  body[data-page="options"] .brand-word{
+    font-size:7.5px!important;
+  }
+  body[data-page="options"] .option-main{
+    min-width:0!important;
+  }
+  body[data-page="options"] .option-main b{
+    font-size:11px!important;
+    line-height:1.2!important;
+    margin:0!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+  }
+  body[data-page="options"] .option-main strong{
+    display:block!important;
+    font-size:20px!important;
+    line-height:1.05!important;
+    margin-top:3px!important;
+    letter-spacing:-.5px!important;
+  }
+  body[data-page="options"] .option-main span{
+    font-size:8.3px!important;
+    line-height:1.35!important;
+    margin-top:3px!important;
+    white-space:normal!important;
+  }
+  body[data-page="options"] .option-save{
+    font-size:9px!important;
+    line-height:1.25!important;
+    margin-top:3px!important;
+  }
+  body[data-page="options"] .option-go{
+    width:52px!important;
+    min-width:52px!important;
+    height:44px!important;
+    padding:0!important;
+    border-radius:8px!important;
+    font-size:10px!important;
+    display:grid!important;
+    place-items:center!important;
+  }
+
+  /* Alerts: unclip title, remove duplicate helper block, and make controls easier to read */
+  #page-alerts .alert-page-body{
+    padding-top:18px!important;
+  }
+  #page-alerts .alert-page-body>h1{
+    font-size:28px!important;
+    line-height:1.08!important;
+    letter-spacing:-.8px!important;
+    margin:0 0 16px!important;
+  }
+  #page-alerts .alert-intro,
+  #page-alerts .dash-alert{
+    display:none!important;
+  }
+  #page-alerts .alert-page-body>.alert-section-label:first-of-type{
+    display:none!important;
+  }
+  #page-alerts .alert-section-label{
+    margin:20px 2px 9px!important;
+    font-size:20px!important;
+    line-height:1.1!important;
+    letter-spacing:-.5px!important;
+    text-transform:none!important;
+    color:var(--ink)!important;
+  }
+  #page-alerts .settings-card{
+    border-radius:14px!important;
+    margin-bottom:0!important;
+  }
+  #page-alerts .alert-frequency-card .settings-topline{
+    min-height:68px!important;
+    padding:14px 16px!important;
+  }
+  #page-alerts .alert-frequency-card .settings-topline b,
+  #page-alerts .setting-line b{
+    font-size:11px!important;
+  }
+  #page-alerts .alert-frequency-card .settings-topline small,
+  #page-alerts .setting-line small{
+    font-size:8.5px!important;
+    line-height:1.3!important;
+    margin-top:3px!important;
+  }
+  #page-alerts .switch{
+    width:50px!important;
+    height:28px!important;
+    border-radius:16px!important;
+  }
+  #page-alerts .switch:after{
+    width:22px!important;
+    height:22px!important;
+  }
+  #page-alerts .switch.on:after{
+    left:25px!important;
+  }
+  #page-alerts .alert-frequency-card .radio-row{
+    min-height:76px!important;
+    padding:14px 14px!important;
+    grid-template-columns:24px minmax(0,1fr)!important;
+    gap:10px!important;
+  }
+  #page-alerts .radio-dot{
+    width:22px!important;
+    height:22px!important;
+    border-width:2px!important;
+  }
+  #page-alerts .radio-row.active .radio-dot:after{
+    inset:5px!important;
+  }
+  #page-alerts .alert-frequency-card .radio-row b{
+    font-size:12px!important;
+    line-height:1.15!important;
+  }
+  #page-alerts .alert-frequency-card .radio-row small{
+    font-size:9px!important;
+    line-height:1.3!important;
+    margin-top:4px!important;
+  }
+  #page-alerts .setting-line{
+    min-height:72px!important;
+    padding:14px 16px!important;
+  }
+  #page-alerts .setting-line input{
+    min-height:42px!important;
+    font-size:11px!important;
+    padding:9px 11px!important;
+    border-radius:8px!important;
+  }
+  #page-alerts .price-input-wrap span{
+    font-size:9px!important;
+  }
+  #page-alerts .alert-actions{
+    margin-top:14px!important;
+  }
+  #page-alerts #pushStatus,
+  #page-alerts .coming-card{
+    font-size:9px!important;
+  }
+
+  /* More: use the available height instead of leaving a large dead area */
+  #page-more .phone-page-body{
+    padding-top:14px!important;
+    padding-bottom:84px!important;
+  }
+  #page-more .phone-page-body>h1,
+  #page-more .phone-page-body>.dash-helper{
+    display:none!important;
+  }
+  #page-more .menu-card{
+    border-radius:13px!important;
+    margin-bottom:14px!important;
+  }
+  #page-more .menu-row{
+    min-height:68px!important;
+    grid-template-columns:42px minmax(0,1fr) 22px!important;
+    gap:12px!important;
+    padding:12px 16px!important;
+  }
+  #page-more .menu-icon{
+    width:38px!important;
+    height:38px!important;
+    border-radius:10px!important;
+    background:#f4f6f3!important;
+    font-size:18px!important;
+  }
+  #page-more .menu-row b{
+    font-size:11.5px!important;
+    line-height:1.18!important;
+  }
+  #page-more .menu-row small{
+    font-size:9px!important;
+    line-height:1.3!important;
+    margin-top:3px!important;
+  }
+  #page-more .chev{
+    font-size:24px!important;
+  }
+  #page-more #installStatus{
+    min-height:56px!important;
+    padding:15px 16px!important;
+    display:flex!important;
+    align-items:center!important;
+    border-radius:12px!important;
+    font-size:10px!important;
+  }
+  #page-more .reset-link{
+    margin:18px auto 6px!important;
+    font-size:9.5px!important;
+  }
+
+  /* Explore/map: no dead grey/white strip when Best Stop is collapsed. */
+  #page-explore .explore{
+    padding-bottom:64px!important;
+  }
+  #page-explore .map-shell{
+    height:calc(100dvh - 164px)!important;
+    min-height:0!important;
+    background:#e8eee8!important;
+  }
+  #page-explore .map{
+    height:100%!important;
+    min-height:0!important;
+  }
+  #page-explore .mobile-sheet.is-collapsed{
+    position:fixed!important;
+    left:auto!important;
+    right:6px!important;
+    bottom:64px!important;
+    width:96px!important;
+    height:88px!important;
+    max-height:none!important;
+    transform:none!important;
+    background:transparent!important;
+    border:0!important;
+    box-shadow:none!important;
+    overflow:visible!important;
+    pointer-events:none!important;
+  }
+  #page-explore .mobile-sheet.is-collapsed .sheet-handle,
+  #page-explore .mobile-sheet.is-collapsed .sheet-main,
+  #page-explore .mobile-sheet.is-collapsed .sheet-expand{
+    display:none!important;
+  }
+  #page-explore .mobile-sheet.is-collapsed .sheet-peek{
+    position:absolute!important;
+    inset:0!important;
+    width:96px!important;
+    height:88px!important;
+    padding:0!important;
+    margin:0!important;
+    opacity:1!important;
+    background:transparent!important;
+    pointer-events:auto!important;
+    touch-action:none!important;
+    overflow:visible!important;
+  }
+  #page-explore .mobile-sheet.is-collapsed .sheet-peek>*{
+    display:none!important;
+  }
+  #page-explore .mobile-sheet.is-collapsed .sheet-peek:after{
+    right:0!important;
+    top:0!important;
+    width:96px!important;
+    height:88px!important;
+    background-size:contain!important;
+    background-position:center bottom!important;
+    background-repeat:no-repeat!important;
+  }
+  #page-explore .map-station-count{
+    bottom:14px!important;
+    left:12px!important;
+    font-size:9px!important;
+    padding:8px 11px!important;
+  }
+
+  /* Bottom nav: even geometry on every screen */
+  .bottom-nav{
+    height:64px!important;
+    padding:4px 6px!important;
+  }
+  .bottom-nav .nav{
+    font-size:9px!important;
+    gap:4px!important;
+  }
+  .bottom-nav .nav svg{
+    width:23px!important;
+    height:23px!important;
+  }
+}
+@media (max-width:430px){
+  body[data-page="options"] .option-row{
+    grid-template-columns:66px minmax(0,1fr) 48px!important;
+    gap:9px!important;
+    min-height:88px!important;
+    padding:11px 10px!important;
+  }
+  body[data-page="options"] .brand-rank{
+    width:66px!important;
+  }
+  body[data-page="options"] .brand-rank-number{
+    flex-basis:22px!important;
+    width:22px!important;
+    min-width:22px!important;
+    height:22px!important;
+    font-size:10px!important;
+    line-height:22px!important;
+  }
+  body[data-page="options"] .brand-rank .brand-mark{
+    width:37px!important;
+    height:37px!important;
+    flex-basis:37px!important;
+  }
+  body[data-page="options"] .option-main b{font-size:10.5px!important}
+  body[data-page="options"] .option-main strong{font-size:19px!important}
+  body[data-page="options"] .option-main span{font-size:7.9px!important}
+  body[data-page="options"] .option-go{
+    width:48px!important;
+    min-width:48px!important;
+    height:42px!important;
+  }
+  #page-alerts .alert-page-body>h1{font-size:26px!important}
+  #page-alerts .alert-section-label{font-size:19px!important}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -1455,7 +1868,7 @@ html,body,.app,.page,.explore,.explore-grid,.decision-column,.map-shell{min-widt
  <div class="phone-page">
   <div class="phone-page-head"><div class="head-spacer"></div><div class="mini-wordmark">Fill<span>MeNow</span></div><div class="head-spacer"></div></div>
   <div class="phone-page-body alert-page-body">
-   <h1>Price Alerts</h1>
+   <h1>Notification schedule</h1>
    <p class="phone-sub alert-intro">Choose when FillMeNow should watch your area and notify you.</p>
    <div class="dash-helper dash-alert"><img src="data:image/webp;base64,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" alt="Dash, the FillMeNow mascot"><div><b>Let Dash watch the price.</b><span>Choose when you want FillMeNow to check your area and alert you.</span></div></div>
    <div class="alert-section-label">Notification schedule</div>

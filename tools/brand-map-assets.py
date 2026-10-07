@@ -2,7 +2,7 @@
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from urllib.request import Request, urlopen
-import hashlib, json, re
+import hashlib, json, re, base64, struct
 ROOT=Path('web/assets/brands');ROOT.mkdir(parents=True,exist_ok=True)
 ASSETS=[
 ('bp.svg','https://map.bp.com/fuel/assets/bp-088aaf8759de949e0de258e5f3f83e878e5f16583e0027e18c53ed3fb711acb2.svg','112caec6bcad0c52399cbf2c4235d41231017d2cd2ed7467af9f5591e90d187d'),
@@ -11,7 +11,7 @@ ASSETS=[
 ('ampol.svg','https://www.ampol.com.au/stardust/logos/ampol_nav_logo.svg','624113c08036629e5d4d98a444264206bb16ce4856337706e476b26aee8a5ea2'),
 ('united.png','https://www.unitedpetroleum.com.au/app/uploads/2016/06/united-logo-300.png','05fe52dcbea59d150986e3a543281f6c8830cac7e2c368d4d238e7c3a666c9f3'),
 ('metro.png','https://metropetroleum.com.au/wp-content/uploads/2020/07/Metro-Logo-Blue.png','9a7e8d3f68dacafa1ca51feab635f56b14ebc5a82f52197cbe794fbfdd971842'),
-('liberty.svg','https://cdn.sanity.io/images/klkw69zd/production/88d3d01ed1d38f34b307a54e21109db15586bbad-221x58.svg','e365ae017e81e7ee745c4172c3b434cd1816782c7c9c3af5bb04f6bc51cc5db8'),
+('liberty.svg','https://www.libertyconvenience.com.au/wp-content/uploads/2021/03/logo.png','59cff21d5d0f8cd76bd58f4640a53f533811b26eeb589e6a0acb6b9370874643'),
 ('puma.svg','https://pumaenergy.com/wp-content/uploads/2023/04/puma-logo.svg','ff70b4b47aa1c51ebd9fda37853b818985ee414339d50e9118baefcd3752b560'),
 ('reddy.png','https://reddyexpresscdn-beexc8djhzdufcbj.a03.azurefd.net/strapi-uploads/media-library/Reddy_Express_logo_white_c283571e60.png','48c8bf32eba4e4250e5bd215770aceaa754d390957c0e0f1e8209fbd58ea4b3d'),
 ('seven.svg','https://www.7eleven.com.au/','68935f869f60b1b7e16d122e35288d6f0234985b0cf485aa3444c3f0cb4dde67')]
@@ -22,6 +22,11 @@ def fetch(asset):
  if name=='seven.svg':
   text=data.decode('utf-8');start=text.index('class="se-header__logo"')
   data=re.search(r'<svg\b[\s\S]*?</svg>',text[start:]).group(0).encode('utf-8')
+ if name=='liberty.svg':
+  # Keep the original retail PNG bytes and aspect ratio inside a self-contained SVG.
+  assert hashlib.sha256(data).hexdigest()=='cb254c820c2571cc9133e23806b30c3ff5cbf9bb0a57b83518d38e86fac3ed05'
+  width,height=struct.unpack('>II',data[16:24])
+  data=f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}"><image width="{width}" height="{height}" href="data:image/png;base64,{base64.b64encode(data).decode()}"/></svg>'.encode()
  assert hashlib.sha256(data).hexdigest()==sha,'Retailer artwork changed; review before updating '+name
  if name.endswith('.svg'):
   assert b'<svg' in data and not re.search(br'<script\b|<foreignObject\b|onload\s*=|onerror\s*=',data,re.I)

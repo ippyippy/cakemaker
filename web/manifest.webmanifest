@@ -5,8 +5,8 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#07111f",
-  "theme_color": "#07111f",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "description": "Find the best-value fuel stop near you.",
   "icons": [
     {

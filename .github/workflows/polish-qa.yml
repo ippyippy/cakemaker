@@ -2,7 +2,7 @@ name: FillMeNow targeted polish QA
 on:
   push:
     branches: [qa/public-readiness-20261007]
-    paths: ['tools/polish-*', '.github/workflows/polish-qa.yml']
+    paths: ['tools/polish-*', 'tools/recovery-*', '.github/workflows/polish-qa.yml']
 permissions:
   contents: read
 concurrency:
@@ -11,7 +11,7 @@ concurrency:
 jobs:
   web-polish:
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 15
     permissions:
       contents: write
     steps:
@@ -22,6 +22,7 @@ jobs:
         run: |
           python3 tools/polish-apply.py
           python3 tools/polish-finish.py
+          python3 tools/recovery-apply.py
           node tools/polish-backend.cjs
           git diff --check
       - name: Install pinned test tools without application credentials
@@ -38,6 +39,11 @@ jobs:
         env:
           NODE_PATH: /tmp/fmn-polish/node_modules
         run: node tools/polish-count-test.cjs
+      - name: Verify state-race protection and visible recovery controls
+        timeout-minutes: 3
+        env:
+          NODE_PATH: /tmp/fmn-polish/node_modules
+        run: node tools/recovery-test.cjs
       - name: Commit passing web repairs to the same review branch
         env:
           GH_TOKEN: ${{ github.token }}
@@ -45,17 +51,19 @@ jobs:
           test "$GITHUB_REF" = refs/heads/qa/public-readiness-20261007
           git add web/index.html web/sw.js
           if ! git diff --cached --quiet; then
-            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Apply verified map, spacing, toast, Drive Mode and failure-state fixes'
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Apply verified location-race and visible recovery fixes'
             git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/qa/public-readiness-20261007
           fi
           git rev-parse HEAD > qa-results/polish/review-commit.txt
       - name: Keep exact reviewed source and evidence
         if: always()
         run: |
-          mkdir -p qa-results/polish
+          mkdir -p qa-results/polish qa-results/recovery
           cp -r web qa-results/polish/reviewed-web
           cp tools/polish-test.cjs qa-results/polish/test-source.cjs
           cp tools/polish-count-test.cjs qa-results/polish/counter-test-source.cjs
+          cp tools/recovery-test.cjs qa-results/recovery/test-source.cjs
+          cp tools/recovery-apply.py qa-results/recovery/apply-source.py
           git diff -- web > qa-results/polish/uncommitted.patch
           printf '%s\n' '{"applied":false,"scope":"Isolated tests only; live backend guard still requires a separate reviewed deployment."}' > qa-results/backend-application.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

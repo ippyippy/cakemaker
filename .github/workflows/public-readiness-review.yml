@@ -10,7 +10,7 @@ permissions:
   contents: read
 concurrency:
   group: fillmenow-public-readiness-review
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   web-review:
     runs-on: ubuntu-24.04
@@ -27,23 +27,23 @@ jobs:
             python3 tools/public-readiness-repair.py
             python3 tools/public-readiness-followup.py
           fi
+          python3 tools/public-readiness-final.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('web/index.html');s=p.read_text();key='/* FMN_FINAL_VISUAL_20261007 */'
+          s=s.replace(key,key+'\nbody #page-more .reset-link{color:#526057!important}',1) if 'body #page-more .reset-link{color:#526057!important}' not in s else s
+          p.write_text(s)
+          PY
           git diff --check
       - name: Install pinned browser audit tools outside application source
         run: |
           mkdir -p /tmp/fmn-qa
           npm install --prefix /tmp/fmn-qa --ignore-scripts --no-audit --no-fund playwright@1.58.2 @axe-core/playwright@4.11.1
           /tmp/fmn-qa/node_modules/.bin/playwright install --with-deps chromium
-      - name: Retrieve earlier live-browser evidence
-        continue-on-error: true
-        run: |
-          mkdir -p qa-results/before
-          for screen in onboarding explore collapsed options station saved alerts more; do
-            curl --fail --silent --show-error --max-time 12 "https://sb-1into5r0vxqj.vercel.run/shots/390-${screen}.png" -o "qa-results/before/390-${screen}.png" || true
-          done
-      - name: Test seven viewport sizes and live read-only fuel endpoints
+      - name: Test seven viewport sizes, final screenshots and read-only fuel endpoints
         env:
           NODE_PATH: /tmp/fmn-qa/node_modules
-        run: node tools/public-readiness-test.cjs
+        run: node tools/public-readiness-extra.cjs
       - name: Commit tested fixes to the review branch only
         env:
           GH_TOKEN: ${{ github.token }}
@@ -51,7 +51,7 @@ jobs:
           test "$GITHUB_REF" = refs/heads/qa/public-readiness-20261007
           git add web/index.html web/sw.js web/manifest.webmanifest
           if ! git diff --cached --quiet; then
-            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Fix verified public-readiness UI and navigation defects'
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Finish screenshot-verified public-readiness visual fixes'
             git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/qa/public-readiness-20261007
           fi
           git rev-parse HEAD > qa-results/review-commit.txt

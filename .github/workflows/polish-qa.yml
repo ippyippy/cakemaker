@@ -1,0 +1,119 @@
+name: FillMeNow targeted polish QA
+on:
+  push:
+    branches: [qa/public-readiness-20261007]
+    paths: ['tools/polish-*', '.github/workflows/polish-qa.yml']
+permissions:
+  contents: read
+concurrency:
+  group: fillmenow-targeted-polish
+  cancel-in-progress: false
+jobs:
+  web-polish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Apply guarded changes to the existing app
+        run: |
+          python3 tools/polish-apply.py
+          node tools/polish-backend.cjs
+          git diff --check
+      - name: Install pinned test tools without application credentials
+        run: |
+          npm install --prefix /tmp/fmn-polish --ignore-scripts --no-audit --no-fund playwright@1.58.2 @axe-core/playwright@4.11.1
+          /tmp/fmn-polish/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Test Chromium, WebKit, collision handling and recovery
+        env:
+          NODE_PATH: /tmp/fmn-polish/node_modules
+        run: node tools/polish-test.cjs
+      - name: Commit passing web repairs to the same review branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/qa/public-readiness-20261007
+          git add web/index.html web/sw.js
+          if ! git diff --cached --quiet; then
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Apply tested collision, toast and Drive Mode fixes'
+            git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/qa/public-readiness-20261007
+          fi
+          git rev-parse HEAD > qa-results/polish/review-commit.txt
+      - name: Keep exact reviewed source and evidence
+        if: always()
+        run: |
+          mkdir -p qa-results/polish
+          cp -r web qa-results/polish/reviewed-web
+          git diff -- web > qa-results/polish/uncommitted.patch
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fillmenow-targeted-polish
+          path: qa-results/
+          retention-days: 7
+  backend-guard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Test the surgical existing-function guard
+        run: node tools/polish-backend.cjs
+      - name: Check existing deployment credential without revealing it
+        id: credential
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -n "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo 'available=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'available=false' >> "$GITHUB_OUTPUT"
+            printf '%s\n' '{"applied":false,"reason":"No existing Supabase deployment credential is configured in GitHub. Guard is tested, not deployed."}' > qa-results/backend-application.json
+          fi
+      - name: Install pinned official CLI without credentials
+        if: steps.credential.outputs.available == 'true'
+        run: |
+          npm install --prefix /tmp/fmn-supabase --no-audit --no-fund supabase@2.81.3
+          /tmp/fmn-supabase/node_modules/.bin/supabase functions download --help
+          /tmp/fmn-supabase/node_modules/.bin/supabase functions deploy --help
+      - name: Download only the exact existing function
+        if: steps.credential.outputs.available == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request
+          u='https://api.supabase.com/v1/projects/psytztnkeeymavzmpomv/functions/fueldrop'
+          r=urllib.request.urlopen(urllib.request.Request(u,headers={'Authorization':'Bearer '+os.environ['SUPABASE_ACCESS_TOKEN']}),timeout=30)
+          j=json.load(r)
+          assert j['version']==61 and j['verify_jwt'] is False, 'Function changed; stop rather than overwrite concurrent work'
+          open('/tmp/fmn-function-version','w').write(str(j['version']))
+          PY
+          /tmp/fmn-supabase/node_modules/.bin/supabase functions download fueldrop --project-ref psytztnkeeymavzmpomv --use-api
+          cp supabase/functions/fueldrop/index.ts /tmp/fmn-original-index.ts
+      - name: Test the exact downloaded source before changing the existing function
+        if: steps.credential.outputs.available == 'true'
+        run: node tools/polish-backend.cjs supabase/functions/fueldrop/index.ts
+      - name: Apply the tested error guard to the existing backend only
+        if: steps.credential.outputs.available == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request
+          u='https://api.supabase.com/v1/projects/psytztnkeeymavzmpomv/functions/fueldrop'
+          j=json.load(urllib.request.urlopen(urllib.request.Request(u,headers={'Authorization':'Bearer '+os.environ['SUPABASE_ACCESS_TOKEN']}),timeout=30))
+          assert j['version']==int(open('/tmp/fmn-function-version').read()), 'Concurrent change; stopping'
+          PY
+          /tmp/fmn-supabase/node_modules/.bin/supabase functions deploy fueldrop --project-ref psytztnkeeymavzmpomv --no-verify-jwt --use-api
+          printf '%s\n' '{"applied":true,"function":"fueldrop","scope":"Only the publicPricePayload failure guard; existing authentication retained"}' > qa-results/backend-application.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fillmenow-backend-guard
+          path: qa-results/*.json
+          retention-days: 7

@@ -1,0 +1,55 @@
+{
+  "purpose": "Station identification only. FillMeNow is independent; no retailer endorsement or affiliation is implied. Trademarks remain the property of their owners.",
+  "assets": [
+    {
+      "file": "bp.svg",
+      "source": "https://map.bp.com/fuel/assets/bp-088aaf8759de949e0de258e5f3f83e878e5f16583e0027e18c53ed3fb711acb2.svg",
+      "sha256": "112caec6bcad0c52399cbf2c4235d41231017d2cd2ed7467af9f5591e90d187d"
+    },
+    {
+      "file": "shell.svg",
+      "source": "https://www.shell.com.au/etc.clientlibs/amidala/clientlibs/theme-base/resources/favicon/favicon.svg",
+      "sha256": "55bbd2451ebd8327271311ef92e65c766854602ced336d7d9677acc84607a8e7"
+    },
+    {
+      "file": "caltex.png",
+      "source": "https://www.caltex.com/content/dam/caltex/common/icon/corporate/caltex_logo.png",
+      "sha256": "b8af7d6634f644ca7beb624900ef948dd73bbb79ca7a2c6e4503de7d4c338ece"
+    },
+    {
+      "file": "ampol.svg",
+      "source": "https://www.ampol.com.au/stardust/logos/ampol_nav_logo.svg",
+      "sha256": "624113c08036629e5d4d98a444264206bb16ce4856337706e476b26aee8a5ea2"
+    },
+    {
+      "file": "united.png",
+      "source": "https://www.unitedpetroleum.com.au/app/uploads/2016/06/united-logo-300.png",
+      "sha256": "05fe52dcbea59d150986e3a543281f6c8830cac7e2c368d4d238e7c3a666c9f3"
+    },
+    {
+      "file": "metro.png",
+      "source": "https://metropetroleum.com.au/wp-content/uploads/2020/07/Metro-Logo-Blue.png",
+      "sha256": "9a7e8d3f68dacafa1ca51feab635f56b14ebc5a82f52197cbe794fbfdd971842"
+    },
+    {
+      "file": "liberty.svg",
+      "source": "https://cdn.sanity.io/images/klkw69zd/production/88d3d01ed1d38f34b307a54e21109db15586bbad-221x58.svg",
+      "sha256": "e365ae017e81e7ee745c4172c3b434cd1816782c7c9c3af5bb04f6bc51cc5db8"
+    },
+    {
+      "file": "puma.svg",
+      "source": "https://pumaenergy.com/wp-content/uploads/2023/04/puma-logo.svg",
+      "sha256": "ff70b4b47aa1c51ebd9fda37853b818985ee414339d50e9118baefcd3752b560"
+    },
+    {
+      "file": "reddy.png",
+      "source": "https://reddyexpresscdn-beexc8djhzdufcbj.a03.azurefd.net/strapi-uploads/media-library/Reddy_Express_logo_white_c283571e60.png",
+      "sha256": "48c8bf32eba4e4250e5bd215770aceaa754d390957c0e0f1e8209fbd58ea4b3d"
+    },
+    {
+      "file": "seven.svg",
+      "source": "https://www.7eleven.com.au/",
+      "sha256": "68935f869f60b1b7e16d122e35288d6f0234985b0cf485aa3444c3f0cb4dde67"
+    }
+  ]
+}

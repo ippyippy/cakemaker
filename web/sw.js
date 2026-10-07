@@ -1,5 +1,5 @@
-const CACHE = 'fillmenow-web-v12-recovery-20261008';
-const SHELL = ['/', '/manifest.webmanifest', '/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png', '/assets/maplibre.js', '/assets/maplibre.css', '/privacy', '/terms'];
+const CACHE = 'fillmenow-web-v13-brand-pins-20261008';
+const SHELL = ["/", "/manifest.webmanifest", "/icon.svg", "/icons/icon-192.png", "/icons/icon-512.png", "/assets/maplibre.js", "/assets/maplibre.css", "/privacy", "/terms", "/assets/brands/bp.svg", "/assets/brands/shell.svg", "/assets/brands/caltex.png", "/assets/brands/ampol.svg", "/assets/brands/united.png", "/assets/brands/metro.png", "/assets/brands/liberty.svg", "/assets/brands/puma.svg", "/assets/brands/reddy.png", "/assets/brands/seven.svg"];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
 });

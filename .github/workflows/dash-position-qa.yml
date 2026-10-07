@@ -1,0 +1,65 @@
+name: FillMeNow movable Dash QA
+on:
+  push:
+    branches: [fix/dash-position-20261008]
+    paths: ['tools/dash-position-*', '.github/workflows/dash-position-qa.yml']
+permissions:
+  contents: read
+concurrency:
+  group: fillmenow-movable-dash
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Install pinned isolated browser tools
+        run: |
+          npm install --prefix /tmp/fmn-dash --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          /tmp/fmn-dash/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Capture current collapsed icon before repair
+        env:
+          NODE_PATH: /tmp/fmn-dash/node_modules
+          QUICK: '1'
+          BEFORE: '1'
+          OUT: qa-results/dash-before
+        run: node tools/dash-position-test.cjs
+      - name: Repair only the existing Dash gesture and tile styles
+        run: |
+          python3 tools/dash-position-apply.py
+          node - <<'JS'
+          const fs=require('fs'),vm=require('vm');const html=fs.readFileSync('web/index.html','utf8');for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi))new vm.Script(m[1]);new vm.Script(fs.readFileSync('web/sw.js','utf8'));console.log('Application scripts parse');
+          JS
+          git diff --check
+      - name: Verify corners, mouse and touch input, persistence, cancellation and rotation
+        timeout-minutes: 5
+        env:
+          NODE_PATH: /tmp/fmn-dash/node_modules
+        run: node tools/dash-position-test.cjs
+      - name: Commit passing web changes to the same feature branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/fix/dash-position-20261008
+          git add web/index.html web/sw.js
+          if ! git diff --cached --quiet; then
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Fix rounded Dash tile and enable saved drag-to-position gestures'
+            git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/fix/dash-position-20261008
+          fi
+          git rev-parse HEAD > qa-results/dash/review-commit.txt
+      - name: Capture test source
+        if: always()
+        run: |
+          mkdir -p qa-results/dash
+          cp tools/dash-position-test.cjs qa-results/dash/test-source.cjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fillmenow-movable-dash-evidence
+          path: qa-results/
+          retention-days: 7

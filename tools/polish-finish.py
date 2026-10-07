@@ -1,4 +1,4 @@
-"""Small, guarded follow-up from actual screenshots and control inspection."""
+"""Guarded follow-up from actual screenshots and control inspection."""
 from pathlib import Path
 import re
 p=Path('web/index.html');s=p.read_text()
@@ -40,15 +40,22 @@ if 'FMN_MAP_COUNT_INTERACTION_20261007' not in s:
     assert old in s;s=s.replace(old,'if(!map)return;',1)
     start=s.index('<style id="fillmenow-public-readiness-2026-10-07">');end=s.index('</style>',start)
     s=s[:end]+'\n/* FMN_MAP_COUNT_INTERACTION_20261007 */\nbody .map-station-count{pointer-events:auto!important;touch-action:manipulation}\n'+s[end:]
-if 'FMN_DETACHED_LOGO_GUARD_20261007' not in s:
-    # A delayed image error may run after a marker/card was removed or replaced.
-    # Disable the handler first and retain the host before replacing its children.
-    old='onerror="this.parentElement.classList.add('
-    new='onerror="this.onerror=null;var host=this.parentElement;if(!host)return;host.classList.add('
-    assert s.count(old)==1;s=s.replace(old,new,1)
-    old='this.parentElement.innerHTML=';assert s.count(old)==1;s=s.replace(old,'host.innerHTML=',1)
-    s=s.replace('function brandMark(brand,name){','function brandMark(brand,name){\n // FMN_DETACHED_LOGO_GUARD_20261007',1)
+if 'FMN_BRAND_LOADING_FALLBACK_20261007' not in s:
+    # Render a readable wordmark immediately. Network images stay invisible until
+    # decoded, so slow/failed logos never expose a browser broken-image placeholder.
+    start=s.index('function brandMark(brand,name){');end=s.index('\nfunction ',start+12)
+    replacement=r'''function brandMark(brand,name){
+ // FMN_BRAND_LOADING_FALLBACK_20261007; preserves original Dash image assets.
+ var k=brandKey(brand,name),url=k?BRAND_LOGOS[k]:"",label=brandLabel(brand,name),title=esc(brand||name||"Fuel station");
+ if(!url){
+  if(label)return '<span class="brand-mark wordmark" title="'+title+'"><span class="brand-word">'+esc(label)+'</span></span>';
+  return '<span class="brand-mark generic" title="Fuel station"><span class="brand-fallback">'+pumpIcon()+'</span></span>';
+ }
+ return '<span class="brand-mark wordmark" style="position:relative" title="'+title+'"><span class="brand-word">'+esc(label||"FUEL")+'</span><img src="'+url+'" alt="" decoding="async" loading="eager" referrerpolicy="no-referrer" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;object-fit:contain" onload="this.onload=null;var host=this.parentElement;if(!host||!this.naturalWidth)return;this.style.opacity=\'1\';var fallback=host.querySelector(\'.brand-word\');if(fallback)fallback.style.visibility=\'hidden\';host.classList.remove(\'wordmark\')" onerror="this.onerror=null;this.remove()"></span>';
+}
+'''
+    s=s[:start]+replacement+s[end:]
 assert re.findall(r'data:image/[^\s"\')]+',s)==images
 p.write_text(s)
-sw=Path('web/sw.js');sw.write_text(re.sub(r"const CACHE = '[^']+';","const CACHE = 'fillmenow-web-v9-20261007';",sw.read_text(),count=1))
-print('Desktop spacing, unavailable-snapshot guard, map counter and detached-logo fallback applied; images untouched.')
+sw=Path('web/sw.js');sw.write_text(re.sub(r"const CACHE = '[^']+';","const CACHE = 'fillmenow-web-v10-20261007';",sw.read_text(),count=1))
+print('Desktop spacing, unavailable-snapshot guard, map counter and stable brand fallback applied; Dash untouched.')

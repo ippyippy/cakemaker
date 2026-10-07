@@ -1,0 +1,64 @@
+'use strict';
+const fs=require('fs'),path=require('path'),http=require('http'),assert=require('assert/strict'),vm=require('vm');
+const {chromium,webkit}=require('playwright');
+const AxeBuilder=require('@axe-core/playwright').default;
+const root=path.resolve('web'),out=path.resolve('qa-results/polish');fs.mkdirSync(out,{recursive:true});
+const html=fs.readFileSync(path.join(root,'index.html'),'utf8');for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi))new vm.Script(m[1]);
+const report={testedAt:new Date().toISOString(),source:process.env.GITHUB_SHA,backend:[],browsers:[],failures:[]};
+const backend='https://psytztnkeeymavzmpomv.supabase.co/functions/v1/fueldrop';
+const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.svg':'image/svg+xml','.webmanifest':'application/manifest+json','.json':'application/json'};
+const server=http.createServer((req,res)=>{const u=new URL(req.url,'http://localhost');let f=path.resolve(root,'.'+u.pathname);if(f!==root&&!f.startsWith(root+path.sep)){res.writeHead(403);return res.end()}if(u.pathname==='/'){res.setHeader('Content-Type','text/html');return res.end(html.replace('map=new maplibregl.Map({','map=window.__qaMap=new maplibregl.Map({'))}if(!fs.existsSync(f)&&!path.extname(f))f+='.html';if(!fs.existsSync(f)||!fs.statSync(f).isFile()){res.writeHead(404);return res.end()}res.setHeader('Content-Type',mime[path.extname(f)]||'application/octet-stream');fs.createReadStream(f).pipe(res)});
+const base='http://127.0.0.1:8766';let fixture;
+const seed=()=>{localStorage.setItem('fmnOnboarded','1');localStorage.setItem('fdLoc',JSON.stringify({lat:-33.8688,lng:151.2093,label:'Sydney NSW',suburb:'Sydney',state:'NSW'}));localStorage.setItem('fdPrefs',JSON.stringify({state:'NSW',fuel:'Diesel',radius:20,alertRadius:20,tank:65,economy:9,vehicle:'car',frequency:'daily',time1:'06:00',time2:'15:30',threshold:''}));};
+const geometry=()=>{const a=Array.from(document.querySelectorAll('#exploreMap .price-marker,#exploreMap .station-cluster')).filter(e=>getComputedStyle(e).visibility==='visible').map(e=>({rect:e.getBoundingClientRect(),text:e.innerText}));let collisions=[];for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++){const x=a[i].rect,y=a[j].rect;if(x.left<y.right&&x.right>y.left&&x.top<y.bottom&&x.bottom>y.top)collisions.push([a[i].text,a[j].text])}return {visible:a.length,collisions,grouped:document.querySelectorAll('.station-cluster').length,total:Array.from(document.querySelectorAll('[data-station-count]')).reduce((n,e)=>n+Number(e.dataset.stationCount),0)}};
+function save(){fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(report,null,2))}
+async function shot(p,name){await p.screenshot({path:path.join(out,name+'.png'),animations:'disabled'})}
+async function check(type,w,h){const name=type===webkit?'webkit':'chromium';let browser;
+const r={browser:name,width:w,height:h,checks:[],mapChecks:[],pageErrors:[],accessibility:{}};
+try{
+browser=await type.launch({headless:true,...(type===chromium?{args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']}: {})});
+const ctx=await browser.newContext({viewport:{width:w,height:h},deviceScaleFactor:1,hasTouch:w<=1024,isMobile:w<=600,ignoreHTTPSErrors:true});
+let responseMode='normal';
+await ctx.route('**/functions/v1/fueldrop*',async route=>{const req=route.request(),u=new URL(req.url());if(req.method()!=='GET'&&req.method()!=='OPTIONS')return route.fulfill({status:503,contentType:'application/json',body:'{"ok":false,"error":"QA blocks writes"}'});if(u.searchParams.get('api')==='prices'){let body=fixture,status=200;if(responseMode==='error'){status=503;body={ok:false,rows:[],error:'price_unavailable'}}if(responseMode==='empty')body={ok:true,rows:[],price_date:fixture.price_date};if(responseMode==='mixed')body={ok:true,connected:false,rows:[],error:'price_unavailable'};return route.fulfill({status,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(body)})}return route.continue()});
+await ctx.addInitScript(seed);const p=await ctx.newPage();p.setDefaultTimeout(10000);p.on('pageerror',e=>r.pageErrors.push(e.message));
+await p.goto(base,{waitUntil:'domcontentloaded'});await p.waitForFunction(()=>Number(document.querySelector('#statCount').textContent)>0);await p.waitForTimeout(700);
+const total=Number(await p.locator('#statCount').innerText());
+assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth),w);if(w<=1024){assert.ok(await p.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1));await shot(p,`${name}-${w}-expanded`);await p.evaluate(()=>FD.sheet());await p.waitForTimeout(300)}
+r.mapAvailable=await p.evaluate(()=>!!window.__qaMap);
+if(r.mapAvailable){
+ await p.waitForFunction(()=>__qaMap.isStyleLoaded(),null,{timeout:12000}).catch(()=>{});
+ r.mapStyleLoaded=await p.evaluate(()=>__qaMap.isStyleLoaded());
+ for(const z of [8,10,11.2,12.7,14,17,20]){
+  const center=z>=14?[fixture.rows[0].longitude,fixture.rows[0].latitude]:[151.18,-33.88];
+  await p.evaluate(({z,center})=>__qaMap.jumpTo({center,zoom:z}),{z,center});await p.waitForTimeout(150);
+  const g=await p.evaluate(geometry);assert.equal(g.collisions.length,0,`Map labels overlap at zoom ${z}`);assert.equal(g.total,total,'Every station remains in a marker/group');r.mapChecks.push({zoom:z,...g});
+ }
+ await p.evaluate(()=>__qaMap.jumpTo({center:[151.2,-33.87],zoom:11.2}));await p.waitForTimeout(200);await shot(p,`${name}-${w}-map`);
+ assert.ok((await p.evaluate(geometry)).visible>0,'Map must retain visible station labels');
+ const group=p.locator('.station-cluster[aria-hidden="false"]').first();
+ if(await group.count()){
+  const count=Number(await group.getAttribute('data-station-count'));await group.click();assert.equal(await p.locator('.option-row').count(),count);await shot(p,`${name}-${w}-group`);await p.locator('#mapGroupReset').click();assert.equal(await p.locator('.option-row').count(),total);r.checks.push('Grouped stations all accessible; show-all restores full list');
+ }
+ await p.locator('.nav[data-page="explore"]').click();
+ if(w<=1024&&!(await p.locator('#mobileSheet').evaluate(e=>e.classList.contains('is-collapsed')))){await p.evaluate(()=>FD.sheet());await p.waitForTimeout(300)}
+ await p.evaluate(()=>__qaMap.easeTo({zoom:12.8,center:[151.1,-33.88],duration:550}));
+ for(let n=0;n<6;n++){await p.waitForTimeout(100);assert.equal((await p.evaluate(geometry)).collisions.length,0,'No collisions during animated zoom/pan')}
+ r.checks.push('No map-label collisions at seven zoom levels or during movement');
+}else{r.checks.push('Map unavailable in this browser runtime; fallback only, not map sign-off')}
+await p.evaluate(()=>FD.options());assert.equal(await p.locator('.option-row').count(),total);assert.ok(parseFloat(await p.locator('.option-id').first().evaluate(e=>getComputedStyle(e).fontSize))>=14);r.accessibility.options=(await new AxeBuilder({page:p}).analyze()).violations.map(v=>({id:v.id,count:v.nodes.length}));
+await p.evaluate(()=>FD.drive());assert.ok(await p.locator('#driveMode.open').count());await shot(p,`${name}-${w}-drive`);assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+await p.evaluate(()=>{window.__qaNavigation=null;window.open=(url)=>{window.__qaNavigation=url;return null}});await p.locator('#driveContent .drive-go').click();assert.match(await p.evaluate(()=>window.__qaNavigation),/^https:\/\/www.google.com\/maps\/dir\/\?api=1&destination=/);await p.keyboard.press('Escape');assert.equal(await p.locator('#driveMode.open').count(),0);r.checks.push('Drive Mode opens, directions target is valid and Escape closes');
+await p.locator('.nav[data-page="alerts"]').click();await p.locator('#saveAlerts').click();await p.waitForTimeout(120);let toast=await p.locator('#toast').evaluate(e=>({opacity:getComputedStyle(e).opacity,visibility:getComputedStyle(e).visibility,color:getComputedStyle(e).color,bg:getComputedStyle(e).backgroundColor}));assert.equal(toast.opacity,'1');assert.equal(toast.visibility,'visible');r.toast=toast;r.accessibility.toast=(await new AxeBuilder({page:p}).include('#toast').analyze()).violations.map(v=>({id:v.id,count:v.nodes.length}));assert.equal(r.accessibility.toast.length,0);r.checks.push('Toast stays opaque and passes accessibility scan');
+await p.locator('.nav[data-page="explore"]').click();
+for(const mode of ['error','mixed','empty']){responseMode=mode;await p.evaluate(()=>FD.refresh());await p.evaluate(()=>FD.options());await p.waitForTimeout(100);let text=await p.locator('#optionsList').innerText();assert.match(text,mode==='empty'?/No stations found/:/could not be loaded/);assert.equal(await p.locator('.option-row').count(),0);r.checks.push(`${mode} response has correct non-misleading state`)}
+responseMode='normal';await p.evaluate(()=>FD.refresh());await p.waitForFunction(()=>document.querySelectorAll('.option-row').length>0);assert.equal(await p.locator('.option-row').count(),total);r.checks.push('Retry recovers real captured results');
+assert.equal(r.pageErrors.length,0,'No uncaught application errors');r.passed=true;
+}catch(e){r.passed=false;r.failure=e.stack;report.failures.push(`${name} ${w}x${h}: ${e.message}`)}finally{if(browser)await browser.close();report.browsers.push(r);save();console.log(JSON.stringify({browser:name,width:w,passed:r.passed,map:r.mapAvailable,mapChecks:r.mapChecks.length,failure:r.failure,checks:r.checks}))}}
+(async()=>{
+await new Promise(r=>server.listen(8766,'127.0.0.1',r));
+for(const [state,lat,lng] of [['NSW',-33.8688,151.2093],['WA',-31.9523,115.8613],['TAS',-42.8821,147.3272]]){const u=new URL(backend);u.search=new URLSearchParams({api:'prices',state,fuel:'Diesel',lat,lng,radius:20});const response=await fetch(u,{signal:AbortSignal.timeout(20000)});const j=await response.json();report.backend.push({state,status:response.status,ok:j.ok,rows:j.rows?.length,price_date:j.price_date,snapshot_synced_at:j.snapshot_synced_at});assert.equal(response.status,200);assert.equal(j.ok,true);assert.ok(j.rows.length);if(state==='NSW')fixture=j}
+fs.writeFileSync(path.join(out,'fuel-fixture.json'),JSON.stringify(fixture));
+for(const size of [[320,740],[360,800],[390,844],[430,932],[768,1024],[1024,768],[1440,900]])await check(chromium,...size);
+for(const size of [[390,844],[1440,900]])await check(webkit,...size);
+save();server.close();if(report.failures.length)process.exitCode=1;
+})().catch(e=>{report.failures.push(e.stack);save();console.error(e);server.close();process.exitCode=1});

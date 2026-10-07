@@ -49,6 +49,8 @@ try{
  regionsMode='normal';await page.evaluate(()=>FD.area());await page.locator('#stateSelect').selectOption('NSW');await page.locator('#regions .region').filter({hasText:'Sydney'}).click();
  await page.waitForFunction(()=>Number(document.querySelector('#statCount').textContent)>0);
  pricesMode='error';await page.evaluate(()=>FD.refresh());await page.evaluate(()=>FD.options());await page.locator('#optionsRetry').waitFor();
+ result.errorTextSize=await page.locator('#optionsList .empty').evaluate(el=>parseFloat(getComputedStyle(el).fontSize));
+ assert.ok(result.errorTextSize>=14,'Unavailable-result messages must use at least 14px text');
  const buttons=await page.locator('#optionsList .empty-actions button').evaluateAll(elements=>elements.map(e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom}}));
  assert.equal(buttons.length,2);buttons.forEach(b=>assert.ok(b.h>=44&&b.w>=44));assert.ok(buttons[0].right<=buttons[1].x||buttons[0].bottom<=buttons[1].y||buttons[1].bottom<=buttons[0].y,'Recovery buttons do not overlap');
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
@@ -57,6 +59,7 @@ try{
  pricesMode='normal';await page.locator('#optionsRetry').click();await page.waitForFunction(()=>document.querySelectorAll('.option-row').length>0);assert.equal(await page.locator('#optionsRetry').count(),0);
  result.checks.push('Failed price requests expose readable non-overlapping retry/area buttons; a real retry click restores results');
  pricesMode='empty';await page.evaluate(()=>FD.refresh());await page.locator('#optionsWiden').waitFor();assert.match(await page.locator('#optionsList').innerText(),/No stations found/);
+ result.emptyTextSize=await page.locator('#optionsList .empty').evaluate(el=>parseFloat(getComputedStyle(el).fontSize));assert.ok(result.emptyTextSize>=14,'Empty-result messages must use at least 14px text');
  pricesMode='normal';await page.locator('#optionsWiden').click();await page.waitForFunction(()=>document.querySelectorAll('.option-row').length>0);
  const settings=await page.evaluate(()=>JSON.parse(localStorage.getItem('fdPrefs')));assert.equal(settings.radius,30);assert.equal(settings.alertRadius,20);
  result.checks.push('Empty results offer a wider search without changing the alert radius');

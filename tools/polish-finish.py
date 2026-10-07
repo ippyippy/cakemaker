@@ -40,7 +40,15 @@ if 'FMN_MAP_COUNT_INTERACTION_20261007' not in s:
     assert old in s;s=s.replace(old,'if(!map)return;',1)
     start=s.index('<style id="fillmenow-public-readiness-2026-10-07">');end=s.index('</style>',start)
     s=s[:end]+'\n/* FMN_MAP_COUNT_INTERACTION_20261007 */\nbody .map-station-count{pointer-events:auto!important;touch-action:manipulation}\n'+s[end:]
+if 'FMN_DETACHED_LOGO_GUARD_20261007' not in s:
+    # A delayed image error may run after a marker/card was removed or replaced.
+    # Disable the handler first and retain the host before replacing its children.
+    old='onerror="this.parentElement.classList.add('
+    new='onerror="this.onerror=null;var host=this.parentElement;if(!host)return;host.classList.add('
+    assert s.count(old)==1;s=s.replace(old,new,1)
+    old='this.parentElement.innerHTML=';assert s.count(old)==1;s=s.replace(old,'host.innerHTML=',1)
+    s=s.replace('function brandMark(brand,name){','function brandMark(brand,name){\n // FMN_DETACHED_LOGO_GUARD_20261007',1)
 assert re.findall(r'data:image/[^\s"\')]+',s)==images
 p.write_text(s)
-sw=Path('web/sw.js');sw.write_text(re.sub(r"const CACHE = '[^']+';","const CACHE = 'fillmenow-web-v8-20261007';",sw.read_text(),count=1))
-print('Desktop spacing, unavailable-snapshot guard and accessible map counter applied; images untouched.')
+sw=Path('web/sw.js');sw.write_text(re.sub(r"const CACHE = '[^']+';","const CACHE = 'fillmenow-web-v9-20261007';",sw.read_text(),count=1))
+print('Desktop spacing, unavailable-snapshot guard, map counter and detached-logo fallback applied; images untouched.')

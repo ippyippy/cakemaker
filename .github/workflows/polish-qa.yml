@@ -33,6 +33,11 @@ jobs:
         env:
           NODE_PATH: /tmp/fmn-polish/node_modules
         run: node tools/polish-test.cjs
+      - name: Verify real counter clicks, keyboard access and Dash dragging
+        timeout-minutes: 3
+        env:
+          NODE_PATH: /tmp/fmn-polish/node_modules
+        run: node tools/polish-count-test.cjs
       - name: Commit passing web repairs to the same review branch
         env:
           GH_TOKEN: ${{ github.token }}
@@ -50,6 +55,7 @@ jobs:
           mkdir -p qa-results/polish
           cp -r web qa-results/polish/reviewed-web
           cp tools/polish-test.cjs qa-results/polish/test-source.cjs
+          cp tools/polish-count-test.cjs qa-results/polish/counter-test-source.cjs
           git diff -- web > qa-results/polish/uncommitted.patch
           printf '%s\n' '{"applied":false,"scope":"Isolated tests only; live backend guard still requires a separate reviewed deployment."}' > qa-results/backend-application.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

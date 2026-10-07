@@ -2590,14 +2590,15 @@ function brandLabel(brand,name){
  return first.slice(0,7).toUpperCase();
 }
 function brandMark(brand,name){
- // FMN_DETACHED_LOGO_GUARD_20261007
+ // FMN_BRAND_LOADING_FALLBACK_20261007; preserves original Dash image assets.
  var k=brandKey(brand,name),url=k?BRAND_LOGOS[k]:"",label=brandLabel(brand,name),title=esc(brand||name||"Fuel station");
  if(!url){
   if(label)return '<span class="brand-mark wordmark" title="'+title+'"><span class="brand-word">'+esc(label)+'</span></span>';
   return '<span class="brand-mark generic" title="Fuel station"><span class="brand-fallback">'+pumpIcon()+'</span></span>';
  }
- return '<span class="brand-mark" title="'+title+'"><img src="'+url+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;var host=this.parentElement;if(!host)return;host.classList.add(\'wordmark\');host.innerHTML=\'<span class=&quot;brand-word&quot;>'+esc(label||"FUEL")+'</span>\'"><span class="brand-fallback">'+pumpIcon()+'</span></span>';
+ return '<span class="brand-mark wordmark" style="position:relative" title="'+title+'"><span class="brand-word">'+esc(label||"FUEL")+'</span><img src="'+url+'" alt="" decoding="async" loading="eager" referrerpolicy="no-referrer" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;object-fit:contain" onload="this.onload=null;var host=this.parentElement;if(!host||!this.naturalWidth)return;this.style.opacity=\'1\';var fallback=host.querySelector(\'.brand-word\');if(fallback)fallback.style.visibility=\'hidden\';host.classList.remove(\'wordmark\')" onerror="this.onerror=null;this.remove()"></span>';
 }
+
 function brandRank(brand,name,rank){
  return '<span class="brand-rank">'+brandMark(brand,name)+'<span class="brand-rank-number">'+rank+'</span></span>';
 }

@@ -33,5 +33,16 @@ body .toast{pointer-events:none}
     assert old in s;s=s.replace(old,logo)
     s=s.replace('closeStation();closeDrawer();closeArea();','closeStation();closeDrawer();closeArea();$("toast").classList.remove("show");',1)
     for ident,label in [('stateSelect','State'),('modalFuel','Fuel type')]:s=s.replace('id="'+ident+'"','id="'+ident+'" aria-label="'+label+'"',1)
-    p.write_text(s)
-print('Applied final visual fixes; no mascot replacement or backend change.')
+if 'FMN_FINAL_REVIEW_CLOSURE_20261007' not in s:
+    marker='<style id="fillmenow-public-readiness-2026-10-07">'
+    end=s.index('</style>',s.index(marker))
+    css='''
+/* FMN_FINAL_REVIEW_CLOSURE_20261007 */
+body #page-saved .add-station-btn{background:#16c94b!important;color:#102015!important}
+body #page-more .phone-page-body>h1{display:block!important;font-size:28px!important;line-height:1.15!important;margin:0 0 18px!important}
+'''
+    s=s[:end]+css+s[end:]
+    assert s.count('<h1>Notification schedule</h1>')==1
+    s=s.replace('<h1>Notification schedule</h1>','<h1>Price alerts</h1>',1)
+p.write_text(s)
+print('Applied reviewed typography, headings and contrast; original Dash and backend unchanged.')

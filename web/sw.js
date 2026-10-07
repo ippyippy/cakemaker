@@ -1,4 +1,4 @@
-const CACHE = 'fillmenow-web-v10-20261007';
+const CACHE = 'fillmenow-web-v11-recovery-20261008';
 const SHELL = ['/', '/manifest.webmanifest', '/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png', '/assets/maplibre.js', '/assets/maplibre.css', '/privacy', '/terms'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));

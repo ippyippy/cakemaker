@@ -1,4 +1,4 @@
-"""Small, guarded follow-up from actual desktop screenshots."""
+"""Small, guarded follow-up from actual screenshots and control inspection."""
 from pathlib import Path
 import re
 p=Path('web/index.html');s=p.read_text()
@@ -20,9 +20,27 @@ body #page-options #optionsVehicle>b{display:block!important;font-size:16px!impo
   // A missing state-wide snapshot is unavailable data, not zero nearby stations.
   // This also catches the legacy server's masked database-read failure response.
   if(j.rows.length===0&&!j.price_date)throw Error("fuel snapshot unavailable");'''
-    assert s.count(old)==1
-    s=s.replace(old,new,1)
-    assert re.findall(r'data:image/[^\s"\')]+',s)==images
-    p.write_text(s)
-    sw=Path('web/sw.js');sw.write_text(re.sub(r"const CACHE = '[^']+';","const CACHE = 'fillmenow-web-v7-20261007';",sw.read_text(),count=1))
-print('Desktop metadata separation and unavailable-snapshot guard applied; images untouched.')
+    assert s.count(old)==1;s=s.replace(old,new,1)
+if 'FMN_MAP_COUNT_INTERACTION_20261007' not in s:
+    helper='''function syncMapStationCount(){
+ var e=$("mapStationCount");if(!e)return;
+ e.textContent=!loc?"Choose area":ranked.length+" station"+(ranked.length===1?"":"s")+" · View all";
+ e.setAttribute("role","button");e.tabIndex=0;
+ e.setAttribute("aria-label",!loc?"Choose a search area":"View all "+ranked.length+" nearby stations");
+ e.onclick=function(){if(loc)showPage("options");else openArea()};
+ e.onkeydown=function(event){if(event.key==="Enter"||event.key===" "){event.preventDefault();e.click()}};
+}
+'''
+    assert 'function renderMapMarkers(){\n if(!map||!loc||!window.maplibregl)return;' in s
+    s=s.replace('function renderMapMarkers(){\n if(!map||!loc||!window.maplibregl)return;',helper+'function renderMapMarkers(){\n syncMapStationCount();\n if(!map||!loc||!window.maplibregl)return;',1)
+    start=s.index(' var groups=clusterStations(ranked,0),countEl=$("mapStationCount");');end=s.index(' groups.forEach(function(g){',start)
+    s=s[:start]+' var groups=clusterStations(ranked,0);\n'+s[end:]
+    old='function renderMap(){\n ensureMap();';assert old in s;s=s.replace(old,'function renderMap(){\n syncMapStationCount();\n ensureMap();',1)
+    old='if(!map){var count=$("mapStationCount");if(count)count.textContent=ranked.length+" station"+(ranked.length===1?"":"s")+" in "+prefs.radius+" km";return}'
+    assert old in s;s=s.replace(old,'if(!map)return;',1)
+    start=s.index('<style id="fillmenow-public-readiness-2026-10-07">');end=s.index('</style>',start)
+    s=s[:end]+'\n/* FMN_MAP_COUNT_INTERACTION_20261007 */\nbody .map-station-count{pointer-events:auto!important;touch-action:manipulation}\n'+s[end:]
+assert re.findall(r'data:image/[^\s"\')]+',s)==images
+p.write_text(s)
+sw=Path('web/sw.js');sw.write_text(re.sub(r"const CACHE = '[^']+';","const CACHE = 'fillmenow-web-v8-20261007';",sw.read_text(),count=1))
+print('Desktop spacing, unavailable-snapshot guard and accessible map counter applied; images untouched.')

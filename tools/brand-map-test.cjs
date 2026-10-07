@@ -50,9 +50,10 @@ const flags=process.env.SANDBOX_BROWSER==='1'?['--no-sandbox','--disable-dev-shm
    if(width<1025){await page.locator('#sheetPeek').click();assert.equal(await page.locator('#mobileSheet').evaluate(e=>e.classList.contains('is-collapsed')),false);await page.evaluate(()=>FD.sheet());await page.waitForTimeout(320)}
    await page.evaluate(()=>FD.options());assert.equal(await page.locator('.option-row').count(),fixtures.length);
    for(const screen of ['saved','alerts','more','explore'])await page.locator(`.nav[data-page="${screen}"]`).click();
+   // Explore schedules a resize/recentre; wait for that UI transition before starting an independent pan.
+   await page.waitForTimeout(400);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
    result.checks.push('all in-view stations individually selectable','ten real logos decode','no grouped or hidden pins','shared coordinates fan out without collisions','brand field wins over historic station names','navigation retains real coordinates','Dash and navigation regressions');
-   // Pan: pins for newly visible stations are rebuilt, not limited to the cheapest subset.
    await page.evaluate(()=>window.__qaMap.jumpTo({center:[151.3,-33.75],zoom:18}));await page.waitForTimeout(200);assert.equal(await page.locator('[data-station-id="OUTSIDE"]').count(),1);
    result.checks.push('panning reveals newly visible stations');assert.deepEqual(errors,[]);result.errors=errors;result.status='PASS';report.runs.push(result);console.log(JSON.stringify(result));
    if(engine==='chromium'&&width===390){

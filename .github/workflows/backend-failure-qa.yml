@@ -1,0 +1,52 @@
+name: FillMeNow fuel backend failure QA
+on:
+  push:
+    branches: [fix/fuel-api-failure-20261008]
+    paths:
+      - 'backend/fueldrop/**'
+      - 'tools/backend-*'
+      - '.github/workflows/backend-failure-qa.yml'
+permissions:
+  contents: read
+concurrency:
+  group: fillmenow-fuel-backend-failure
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Capture immutable original public assets
+        run: python3 tools/backend-legacy-snapshot.py
+      - name: Exercise the actual handler with isolated database and notification dependencies
+        run: |
+          node tools/backend-route-test.cjs
+          node tools/polish-backend.cjs backend/fueldrop/index.ts
+          git diff --check
+      - name: Save only tested legacy snapshot to the same branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/fix/fuel-api-failure-20261008
+          git add backend/fueldrop/legacy-assets.ts
+          if ! git diff --cached --quiet; then
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Preserve hash-verified legacy assets with tested backend source'
+            git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/fix/fuel-api-failure-20261008
+          fi
+          git rev-parse HEAD > qa-results/backend/review-commit.txt
+      - name: Capture source evidence
+        if: always()
+        run: |
+          mkdir -p qa-results/backend
+          cp -r backend/fueldrop qa-results/backend/reviewed-source
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fillmenow-backend-failure-evidence
+          path: qa-results/
+          retention-days: 7

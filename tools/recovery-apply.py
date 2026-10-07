@@ -87,4 +87,11 @@ async function loadRegions(){
     assert re.search(r'const BACKEND=([^;]+);',s).group(0)==original_backend,'Backend endpoint must not change'
     p.write_text(s)
     sw=Path('web/sw.js');w=sw.read_text();w=re.sub(r"const CACHE = '[^']+';","const CACHE = 'fillmenow-web-v11-recovery-20261008';",w,count=1);sw.write_text(w)
+# Independent guard also upgrades review branches where the earlier recovery fix was applied.
+if 'FMN_EMPTY_TEXT_20261008' not in s:
+    css='\n/* FMN_EMPTY_TEXT_20261008 */\nbody #optionsList .empty{font-size:14px!important;line-height:1.55!important;color:#384b3d!important;padding:22px 16px 16px!important;text-align:left;border:0;border-radius:0;margin:0;overflow-wrap:anywhere}\n'
+    idx=s.index('</style>',s.index('<style id="fillmenow-public-readiness-2026-10-07">'))
+    s=s[:idx]+css+s[idx:]
+    p.write_text(s)
+    sw=Path('web/sw.js');w=sw.read_text();w=re.sub(r"const CACHE = '[^']+';","const CACHE = 'fillmenow-web-v12-recovery-20261008';",w,count=1);sw.write_text(w)
 print('Applied location-race and visible-recovery fixes to the existing web app; mascot and backend unchanged.')

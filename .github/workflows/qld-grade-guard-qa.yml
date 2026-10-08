@@ -1,0 +1,53 @@
+name: Queensland grade and snapshot guard QA
+on:
+  push:
+    branches: [fix/qld-grade-guard-20261009]
+    paths:
+      - 'tools/qld-grade-guard-*'
+      - '.github/workflows/qld-grade-guard-qa.yml'
+permissions:
+  contents: read
+concurrency:
+  group: fillmenow-qld-grade-guard
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Prepare Queensland-only backend changes
+        run: python3 tools/qld-grade-guard-apply.py
+      - name: Run isolated tests without live imports or production credentials
+        run: |
+          node tools/qld-grade-guard-test.cjs
+          node tools/backend-route-test.cjs
+          node tools/polish-backend.cjs backend/fueldrop/index.ts
+          git diff --check
+      - name: Commit only passing backend source to the same candidate branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/fix/qld-grade-guard-20261009
+          git add backend/fueldrop/index.ts
+          if ! git diff --cached --quiet; then
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Keep Queensland fuel grades distinct and validate full price snapshots'
+            git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/fix/qld-grade-guard-20261009
+          fi
+          git rev-parse HEAD > qa-results/qld-grade-guard/review-commit.txt
+      - name: Save test source and reviewed backend
+        if: always()
+        run: |
+          mkdir -p qa-results/qld-grade-guard
+          cp tools/qld-grade-guard-test.cjs qa-results/qld-grade-guard/test-source.cjs
+          cp -r backend/fueldrop qa-results/qld-grade-guard/reviewed-backend
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fillmenow-qld-grade-guard-evidence
+          path: qa-results/
+          retention-days: 7

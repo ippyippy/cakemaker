@@ -1,0 +1,57 @@
+name: FillMeNow exact map and complete diesel QA
+on:
+  push:
+    branches: [fix/exact-pins-rounded-dash-20261008]
+    paths: ['tools/exact-map-*', 'backend/fuelcheck-sync/**', 'web/interaction-polish.css', '.github/workflows/exact-map-qa.yml']
+permissions:
+  contents: read
+concurrency:
+  group: fillmenow-exact-map
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Apply reviewed in-place corrections
+        run: |
+          python3 tools/exact-map-finalize.py
+          python3 tools/exact-map-apply.py
+          git diff --check
+      - name: Install isolated pinned browser tools
+        run: |
+          npm install --prefix /tmp/fmn-exact --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          /tmp/fmn-exact/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Test exact arrows, stable zoom, rounded Dash and popup footers
+        env:
+          NODE_PATH: /tmp/fmn-exact/node_modules
+        run: node tools/exact-map-test.cjs
+      - name: Preserve draggable Dash and backend failure behaviour
+        env:
+          NODE_PATH: /tmp/fmn-exact/node_modules
+        run: |
+          node tools/dash-position-test.cjs
+          node tools/backend-route-test.cjs
+          node tools/polish-backend.cjs backend/fueldrop/index.ts
+      - name: Commit passing application changes to the same feature branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/fix/exact-pins-rounded-dash-20261008
+          git add web/index.html web/sw.js backend/fueldrop/index.ts tools/exact-map-functions.js tools/exact-map-test.cjs
+          if ! git diff --cached --quiet; then
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Keep Dash rounded, anchor station arrows exactly, and restore premium diesel coverage'
+            git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/fix/exact-pins-rounded-dash-20261008
+          fi
+          git rev-parse HEAD > qa-results/exact-map/review-commit.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fillmenow-exact-map-evidence
+          path: qa-results/
+          retention-days: 7

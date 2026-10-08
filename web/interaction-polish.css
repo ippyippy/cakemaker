@@ -34,3 +34,12 @@ body .exact-station-choice b{font-size:15px;line-height:1.35;display:block}
 body .exact-station-choice small{font-size:13px;line-height:1.4;display:block;margin-top:4px}
 body .exact-station-choice .brand-mark{width:40px;height:40px;flex:0 0 40px}
 @media(min-width:1025px){body #optionsBack.bottom-page-back{left:calc(78px + 14px)!important;bottom:14px!important}}
+
+/* FMN_CONTROL_LAYERS_20261008
+   Contain station z-index values below map controls and all popup footers.
+   Do not change marker transforms, offsets, coordinates or visibility. */
+body #page-explore #exploreMap{isolation:isolate;z-index:0!important}
+body #page-explore #exploreMap .maplibregl-canvas-container{isolation:isolate}
+body #page-explore #mapStationCount{background:#0d1410!important}
+body .popup-shell,body #settingsDrawer{isolation:isolate}
+body .popup-scroll{isolation:isolate}

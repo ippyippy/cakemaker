@@ -1,3 +1,4 @@
+import { qldAreaSearch } from "./qld-area.ts";
 // FMN_QLD_SUPPORT_20261008
 import { supportAPI } from "./support.ts";
 // Existing fueldrop Edge Function v61, with a guarded public price response.
@@ -12,13 +13,15 @@ async function geocode(q,state="NSW"){
  q=String(q||"").trim().replace(/\s+/g," ").toLowerCase().replace(/[^a-z0-9 -]/g,"").slice(0,80);
  const st=String(state||"NSW").toUpperCase();
  if(q.length<2||!["NSW","WA","TAS","QLD"].includes(st))return[];
+ let areaFailed=false;
+ if(st==="QLD"){try{const areas=await qldAreaSearch(q);if(areas.length)return areas}catch{areaFailed=true}}
  try{
   const base=Deno.env.get("SUPABASE_URL")||"",headers=adminHeaders();
   if(!base)return[];
   const filter=/^\d{4}$/.test(q)?"postcode=eq."+encodeURIComponent(q):"suburb=ilike."+encodeURIComponent("*"+q+"*");
   const u=base+"/rest/v1/fuel_site_reference?select=station_id,state_code,suburb,postcode,latitude,longitude&state_code=eq."+encodeURIComponent(st)+"&"+filter+"&limit=2000";
   const rr=await fetch(u,{headers});
-  if(!rr.ok)return[];
+  if(!rr.ok)throw new Error("area_unavailable");
   const rows=await rr.json(),groups=new Map<string,any>();
   for(const x of (Array.isArray(rows)?rows:[])){
    const suburb=String(x.suburb||"").trim(),postcode=String(x.postcode||"").trim(),lat=Number(x.latitude),lng=Number(x.longitude);
@@ -26,7 +29,7 @@ async function geocode(q,state="NSW"){
    const key=(suburb+"|"+postcode).toLowerCase(),g=groups.get(key)||{suburb,postcode,lat:0,lng:0,n:0};
    g.lat+=lat;g.lng+=lng;g.n++;groups.set(key,g);
   }
-  return [...groups.values()].map(g=>({
+  const candidates=[...groups.values()].map(g=>({
    label:g.suburb+" "+st+(g.postcode?" "+g.postcode:""),
    state:st,suburb:g.suburb,postcode:g.postcode,lat:g.lat/g.n,lng:g.lng/g.n,
    source:"Government fuel station centroid"
@@ -35,7 +38,8 @@ async function geocode(q,state="NSW"){
    const ae=al===q?0:al.startsWith(q)?1:2,be=bl===q?0:bl.startsWith(q)?1:2;
    return ae-be||a.label.localeCompare(b.label)
   }).slice(0,10);
- }catch{return[]}
+  if(!candidates.length&&areaFailed)throw new Error("area_unavailable");return candidates;
+ }catch{throw new Error("area_unavailable")}
 }
 function adminApiKey(){
  try{const keys=JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS")||"{}");if(keys&&keys.default)return keys.default}catch(_){}
@@ -88,6 +92,7 @@ function timeDue(nowHm:string,target:any,windowMinutes=15){
 }
 function valueRank(rows:any[],lat:number,lng:number,radius:number,tankLitres:number,economy:number){
  const inRange=rows.map((x:any)=>{
+  if(priceNeedsReview(x))return null;
   const distance_km=serverDistanceKm(lat,lng,Number(x.latitude),Number(x.longitude));
   if(!Number.isFinite(distance_km)||distance_km>radius)return null;
   const price=Number(x.price);if(!Number.isFinite(price)||price<=0)return null;
@@ -156,7 +161,7 @@ async function sendPriceDropPushes(){
   if(!fuelCache.has(cacheKey))fuelCache.set(cacheKey,await latestFuelRows(fuel,state));
   const snap=fuelCache.get(cacheKey);if(!snap?.rows?.length||snap.price_date!==day){skipped++;continue}
   const lat=Number(sub.latitude),lng=Number(sub.longitude),radius=clampNum(sub.radius_km,1,100,20);if(!Number.isFinite(lat)||!Number.isFinite(lng)){skipped++;continue}
-  const ranked=snap.rows.map((x:any)=>({...x,distance_km:serverDistanceKm(lat,lng,Number(x.latitude),Number(x.longitude))})).filter((x:any)=>Number.isFinite(x.distance_km)&&x.distance_km<=radius).sort((a:any,b:any)=>Number(a.price)-Number(b.price)||a.distance_km-b.distance_km);
+  const ranked=snap.rows.filter((x:any)=>!priceNeedsReview(x)).map((x:any)=>({...x,distance_km:serverDistanceKm(lat,lng,Number(x.latitude),Number(x.longitude))})).filter((x:any)=>Number.isFinite(x.distance_km)&&x.distance_km<=radius).sort((a:any,b:any)=>Number(a.price)-Number(b.price)||a.distance_km-b.distance_km);
   if(!ranked.length){skipped++;continue}
   const best=ranked[0],price=Number(best.price);if(!Number.isFinite(price)||price>threshold){skipped++;continue}
   const prior=Number(sub.last_price_drop_price),alreadyToday=sub.last_price_drop_notified_on===day;
@@ -277,11 +282,13 @@ async function providerInfo(state:string){
  const p=rows[0];return {...p,status:(p.status==="connected_trial"||p.status==="connected"||p.status==="live")?"connected":"unavailable"};
 }
 // FMN_DIESEL_COVERAGE_20261008
+// FMN_NEARBY_SAFETY_20261009: conservative review flag, never a guessed source-price correction.
+function priceNeedsReview(row:any){const p=Number(row?.price);return row?.recommendation_eligible===false||!Number.isFinite(p)||p<100||p>500}
 function selectComparableFuelRows(rows:any[]){
  const stations=new Map<string,any>();
  for(const row of rows){
   const id=String(row.station_id),prior=stations.get(id);
-  if(!prior||Number(row.price)<Number(prior.price)||(Number(row.price)===Number(prior.price)&&row.fuel_type==="Diesel"&&prior.fuel_type!=="Diesel"))stations.set(id,row);
+  if(!prior||(!priceNeedsReview(row)&&priceNeedsReview(prior))||(priceNeedsReview(row)===priceNeedsReview(prior)&&(Number(row.price)<Number(prior.price)||(Number(row.price)===Number(prior.price)&&row.fuel_type==="Diesel"&&prior.fuel_type!=="Diesel"))))stations.set(id,row);
  }
  return [...stations.values()].sort((a,b)=>Number(a.price)-Number(b.price)||String(a.station_id).localeCompare(String(b.station_id)));
 }
@@ -328,7 +335,8 @@ function publicPricePayload(payload:any){
  const rows=(Array.isArray(payload?.rows)?payload.rows:[]).map((x:any)=>({
   station_id:x.station_id,station_name:x.station_name,brand:x.brand||null,suburb:x.suburb||null,address:x.address||"",postcode:x.postcode||null,
   latitude:x.latitude,longitude:x.longitude,price:x.price,fuel_type:x.fuel_type,price_date:x.price_date,
-  transaction_date_utc:x.transaction_date_utc,synced_at:x.synced_at
+  transaction_date_utc:x.transaction_date_utc,synced_at:x.synced_at,
+  recommendation_eligible:!priceNeedsReview(x),price_warning:priceNeedsReview(x)?"check_reported_price":null
  }));
  return {ok:true,rows,price_date:payload?.price_date||null,snapshot_synced_at:payload?.snapshot_synced_at||null,state_code:payload?.state_code||null};
 }
@@ -517,6 +525,6 @@ Deno.serve(async req=>{
  if(url.searchParams.get("api")==="sync"){if(!await isAdminRequest(req))return json({ok:false,error:"unauthorized"},401);try{return json(await syncQueenslandFuel())}catch(e){return json({ok:false,error:String(e&&e.message||e)},500)}}
  if(url.searchParams.get("api")==="prices"){try{if(url.searchParams.get("state")==="QLD"&&!await qldCoverageReady())return json({ok:false,rows:[],error:"coverage_pending"},503);const hasGeo=url.searchParams.has("lat")&&url.searchParams.has("lng")&&url.searchParams.has("radius");return json(publicPricePayload(await latestFuelRows(url.searchParams.get("fuel")||"Diesel",url.searchParams.get("state")||"NSW",hasGeo?Number(url.searchParams.get("lat")):undefined,hasGeo?Number(url.searchParams.get("lng")):undefined,hasGeo?Number(url.searchParams.get("radius")):undefined)))}catch(e){return json({ok:false,rows:[],error:"price_unavailable"},500)}}
  if(url.searchParams.get("api")==="regions"){try{return json({state:(url.searchParams.get("state")||"NSW").toUpperCase(),regions:await nationalRegions(url.searchParams.get("state")||"NSW")})}catch(e){return json({regions:[],error:"regions_failed"},500)}}
- if(url.searchParams.get("api")==="geocode"){try{return json({candidates:(await geocode(url.searchParams.get("q")||"",url.searchParams.get("state")||"NSW")).map((x:any)=>({label:x.label,state:x.state,suburb:x.suburb,postcode:x.postcode,lat:x.lat,lng:x.lng}))})}catch(e){return json({candidates:[],error:"geocode_failed"})}}
+ if(url.searchParams.get("api")==="geocode"){try{return json({candidates:(await geocode(url.searchParams.get("q")||"",url.searchParams.get("state")||"NSW")).map((x:any)=>({label:x.label,state:x.state,suburb:x.suburb,postcode:x.postcode,lat:x.lat,lng:x.lng}))})}catch(e){return json({candidates:[],error:"geocode_failed"},503)}}
  return new Response(HTML,{status:200,headers:new Headers([["Content-Type","text/html; charset=utf-8"],["Cache-Control","no-store, no-cache, must-revalidate"],["Pragma","no-cache"],["Referrer-Policy","strict-origin-when-cross-origin"]])});
 });

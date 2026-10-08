@@ -9,11 +9,11 @@
  }
  body #page-explore .mobile-sheet.is-collapsed .sheet-peek{border-radius:18px!important;clip-path:inset(0 round 18px)}
 }
-/* MapLibre owns transform. Do not transition, rebuild or offset pins during map movement. */
-body #page-explore .station-pin{transition:none!important;animation:none!important;overflow:visible!important;will-change:auto!important}
-body #page-explore .station-pin::after{content:""!important;display:block!important;position:absolute!important;left:50%!important;top:100%!important;bottom:auto!important;width:0!important;height:0!important;transform:translateX(-50%)!important;border-left:6px solid transparent!important;border-right:6px solid transparent!important;border-top:8px solid #15241b!important;pointer-events:none!important}
-body #page-explore .station-pin.best::after,body #page-explore .station-pin.selected::after{border-top-color:#087532!important}
-body #page-explore .station-pin:focus-visible{outline:3px solid #087532!important;outline-offset:3px!important;z-index:35!important}
+/* MapLibre owns transform. Legacy position:relative must not add a layout-flow offset. */
+body #page-explore .price-marker.station-pin{position:absolute!important;left:0!important;top:0!important;margin:0!important;border-width:2px!important;transition:none!important;animation:none!important;overflow:visible!important;will-change:auto!important}
+body #page-explore .price-marker.station-pin::after{content:""!important;display:block!important;position:absolute!important;left:50%!important;top:calc(100% + 2px)!important;bottom:auto!important;width:0!important;height:0!important;transform:translateX(-50%)!important;border-left:6px solid transparent!important;border-right:6px solid transparent!important;border-top:8px solid #15241b!important;pointer-events:none!important}
+body #page-explore .price-marker.station-pin.best::after,body #page-explore .price-marker.station-pin.selected::after{border-top-color:#087532!important}
+body #page-explore .price-marker.station-pin:focus-visible{outline:3px solid #087532!important;outline-offset:3px!important;z-index:41!important}
 body .popup-shell{display:flex!important;flex-direction:column!important;overflow:hidden!important;padding:0!important;max-height:calc(100dvh - 28px)!important}
 body #stationModal .modal.popup-shell{overflow:hidden!important;max-height:100%!important}
 body .popup-scroll{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:18px;flex:1 1 auto}

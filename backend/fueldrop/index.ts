@@ -297,7 +297,7 @@ async function latestFuelRows(fuel,state="QLD",lat?:number,lng?:number,radiusKm?
  if(!base||!key)return {connected:false,rows:[],error:"supabase_server_credentials_missing",state_code:st,provider};
  const f=encodeURIComponent(String(fuel||"Diesel").slice(0,20));
  const stateFilter="&state_code=eq."+encodeURIComponent(st);
- const fuelFilter=String(fuel||"Diesel")==="Diesel"?"fuel_type=in.(Diesel,Premium%20Diesel)":"fuel_type=eq."+f;
+ const fuelFilter=String(fuel||"Diesel")==="Diesel"?(st==="QLD"?"fuel_type=in.(Diesel,Premium%20Diesel,ULSD)":"fuel_type=in.(Diesel,Premium%20Diesel)"):"fuel_type=eq."+f;
  const la=Number(lat),lo=Number(lng),rk=Number(radiusKm);let geoFilter="";
  if(Number.isFinite(la)&&Number.isFinite(lo)&&Number.isFinite(rk)&&rk>=1&&rk<=100){
   const latDelta=rk/110.574,cos=Math.max(.2,Math.abs(Math.cos(la*Math.PI/180))),lngDelta=rk/(111.320*cos);
@@ -355,14 +355,20 @@ function qldArray(payload:any,keys:string[]){
   if(payload&&typeof payload==="object"){for(const v of Object.values(payload)){if(Array.isArray(v))return v}}
   return [];
 }
+// FMN_QLD_GRADE_GUARD_20261009
 function appFuelName(name:string){
- const n=String(name||"").toLowerCase();
- if(n.includes("e10"))return "E10";
- if(n.includes("98"))return "U98";
- if(n.includes("95"))return "U95";
- if(n.includes("91")||n==="unleaded"||n.includes("unleaded petrol"))return "U91";
- if(n.includes("diesel"))return n.includes("premium")?"Premium Diesel":"Diesel";
- return null;
+ // Exact provider grades only. B20 and aggregate filter names are not ordinary diesel.
+ const n=String(name||"").trim().toLowerCase().replace(/\s+/g," ");
+ switch(n){
+  case "unleaded": return "U91";
+  case "premium unleaded 95": return "U95";
+  case "premium unleaded 98": return "U98";
+  case "e10": return "E10";
+  case "diesel": return "Diesel";
+  case "premium diesel": return "Premium Diesel";
+  case "ulsd": return "ULSD";
+  default: return null;
+ }
 }
 function brisbaneDate(){
  const parts=new Intl.DateTimeFormat("en-AU",{timeZone:"Australia/Brisbane",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
@@ -419,25 +425,45 @@ async function refreshQueenslandReference(){
 }
 async function loadQueenslandReference(){
  const [fuels,sites]=await Promise.all([readAllRows("fuel_type_reference","fuel_id,name,app_fuel_type"),readAllRows("fuel_site_reference","station_id,station_name,brand,suburb,address,postcode,latitude,longitude","state_code=eq.QLD&provider_code=eq.qld-fpqld")]);
- return {fuels:new Map<number,string>(fuels.map((x:any)=>[Number(x.fuel_id),String(x.app_fuel_type||"")])),sites:new Map<string,any>(sites.map((x:any)=>[String(x.station_id),x])),fuelCount:fuels.length,siteCount:sites.length};
+ return {fuels:new Map<number,string>(fuels.map((x:any)=>[Number(x.fuel_id),appFuelName(String(x.name||""))||""])),sites:new Map<string,any>(sites.map((x:any)=>[String(x.station_id),x])),fuelCount:fuels.length,siteCount:sites.length};
 }
 async function upsertFuelRows(rows:any[]){return await upsertRows("fuel_price_daily","station_id,fuel_type,price_date",rows)}
 async function removeStaleSnapshotRows(priceDate:string,syncedAt:string,state="QLD",provider="qld-fpqld"){await removeOlderRows("fuel_price_daily",syncedAt,"state_code=eq."+encodeURIComponent(state)+"&provider_code=eq."+encodeURIComponent(provider)+"&price_date=eq."+encodeURIComponent(priceDate))}
+function queenslandPriceRows(records:any[],refs:{fuels:Map<number,string>;sites:Map<string,any>},date:string,syncedAt:string){
+ const unique=new Map<string,any>();
+ const allowed=new Set(["Diesel","Premium Diesel","ULSD","U91","U95","U98","E10"]);
+ for(const p of records){
+  if(!p||p.Price==null||p.Price==="")continue;
+  const raw=Number(p.Price);if(!Number.isFinite(raw)||raw<=0||raw===9999)continue;
+  const fuelType=refs.fuels.get(Number(p.FuelId));if(!fuelType||!allowed.has(fuelType))continue;
+  const site=refs.sites.get(String(p.SiteId));if(!site)continue;
+  if(site.latitude==null||site.longitude==null||site.latitude===""||site.longitude==="")continue;
+  const lat=Number(site.latitude),lng=Number(site.longitude);
+  if(!Number.isFinite(lat)||!Number.isFinite(lng)||lat< -29.5||lat> -9||lng<137||lng>154.5)continue;
+  let transaction:string|null=null;
+  if(p.TransactionDateUtc!=null&&p.TransactionDateUtc!==""){
+   const text=String(p.TransactionDateUtc).trim();
+   if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$/.test(text))throw new Error("qld_invalid_price_timestamp");
+   const timestamp=Date.parse(/[zZ]|[+-]\d{2}:?\d{2}$/.test(text)?text:text+"Z");
+   if(!Number.isFinite(timestamp))throw new Error("qld_invalid_price_timestamp");
+   transaction=new Date(timestamp).toISOString();
+  }
+  const row={station_id:String(p.SiteId),state_code:"QLD",provider_code:"qld-fpqld",fuel_type:fuelType,price_date:date,station_name:String(site.station_name||"Fuel station"),brand:site.brand||null,suburb:site.suburb||null,address:String(site.address||""),postcode:site.postcode?String(site.postcode):null,latitude:lat,longitude:lng,price:raw/10,transaction_date_utc:transaction,synced_at:syncedAt};
+  const key=row.station_id+"|"+fuelType,prior=unique.get(key);
+  if(prior&&prior.price!==row.price&&(!prior.transaction_date_utc||!transaction||prior.transaction_date_utc===transaction))throw new Error("qld_conflicting_price_rows");
+  if(!prior||(transaction||"")>(prior.transaction_date_utc||""))unique.set(key,row);
+ }
+ if(!unique.size)throw new Error("qld_empty_price_snapshot");
+ return [...unique.values()];
+}
 async function syncQueenslandFuel(){
  const token=Deno.env.get("QLD_FUEL_API_TOKEN")||"";if(!token)return {ok:true,skipped:"qld_api_token_not_configured"};
  let refs=await loadQueenslandReference();
  let referenceBootstrapped=false;
  if(!refs.siteCount||!refs.fuelCount){const boot=await refreshQueenslandReference();if(!boot.ok)return boot;refs=await loadQueenslandReference();referenceBootstrapped=true}
  const qs="?countryId=21&geoRegionLevel=3&geoRegionId=1",priceRes=await qldGet("/Price/GetSitesPrices"+qs);
- const date=brisbaneDate(),syncedAt=new Date().toISOString(),rows:any[]=[];
- for(const p of qldArray(priceRes,["SitePrices","Prices","P"])){
-  const raw=Number(p.Price);if(!Number.isFinite(raw)||raw<=0||raw===9999)continue;
-  const fuelType=refs.fuels.get(Number(p.FuelId));if(!fuelType)continue;
-  const s=refs.sites.get(String(p.SiteId));if(!s)continue;
-  const lat=Number(s.latitude),lng=Number(s.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lng))continue;
-  rows.push({station_id:String(p.SiteId),state_code:"QLD",provider_code:"qld-fpqld",fuel_type:fuelType,price_date:date,station_name:String(s.station_name||"Fuel station"),brand:s.brand||null,suburb:s.suburb||null,address:String(s.address||""),postcode:s.postcode?String(s.postcode):null,latitude:lat,longitude:lng,price:raw/10,transaction_date_utc:p.TransactionDateUtc||null,synced_at:syncedAt});
- }
- if(!rows.length)throw new Error("qld_empty_price_snapshot");
+ const date=brisbaneDate(),syncedAt=new Date().toISOString();
+ const rows=queenslandPriceRows(qldArray(priceRes,["SitePrices","Prices","P"]),refs,date,syncedAt);
  const written=await upsertFuelRows(rows);await removeStaleSnapshotRows(date,syncedAt);
  return {ok:true,source:"Queensland Fuel Price Reporting Direct API",priceDate:date,snapshotSyncedAt:syncedAt,rowsWritten:written,sitesLoaded:refs.siteCount,pricesReceived:qldArray(priceRes,["SitePrices","Prices","P"]).length,referenceBootstrapped};
 }

@@ -312,7 +312,7 @@ async function latestFuelRows(fuel,state="QLD",lat?:number,lng?:number,radiusKm?
  const select="station_id,state_code,provider_code,station_name,brand,suburb,address,postcode,latitude,longitude,price,fuel_type,price_date,transaction_date_utc,synced_at";
  const rows:any[]=[];let offset=0;const pageSize=1000;
  while(offset<10000){
-  const u=base+"/rest/v1/fuel_price_daily?select="+select+"&"+fuelFilter+stateFilter+geoFilter+"&price_date=eq."+encodeURIComponent(date)+"&order=price.asc&limit="+pageSize+"&offset="+offset;
+  const u=base+"/rest/v1/fuel_price_daily?select="+select+"&"+fuelFilter+stateFilter+geoFilter+"&price_date=eq."+encodeURIComponent(date)+"&order=price.asc,station_id.asc,fuel_type.asc&limit="+pageSize+"&offset="+offset;
   const r=await fetch(u,{headers:adminHeaders()});
   if(!r.ok)return {connected:false,rows:[],error:"supabase_price_query_failed",state_code:st,provider};
   const page=await r.json();if(!Array.isArray(page))break;rows.push(...page);if(page.length<pageSize)break;offset+=pageSize;

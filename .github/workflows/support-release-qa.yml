@@ -54,7 +54,7 @@ jobs:
         run: |
           set -e
           test "$GITHUB_REF" = refs/heads/release/support-startup-qld-20261008
-          git add web/index.html web/privacy.html web/terms.html web/sw.js web/startup-support.css backend/fueldrop/index.ts backend/fueldrop/native-push.ts android/PLAY_STORE_LISTING.md
+          git add web/index.html web/privacy.html web/terms.html web/sw.js web/startup-support.css web/support-chat.js backend/fueldrop/index.ts backend/fueldrop/native-push.ts android/PLAY_STORE_LISTING.md
           if ! git diff --cached --quiet; then
             git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Apply verified startup, private support, saved controls and scoped Queensland integration'
             git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/release/support-startup-qld-20261008

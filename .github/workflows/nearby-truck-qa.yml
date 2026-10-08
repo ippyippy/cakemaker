@@ -1,0 +1,72 @@
+name: FillMeNow Nearby and truck stage QA
+on:
+  push:
+    branches: [feature/nearby-truck-20261009]
+    paths:
+      - 'web/**'
+      - 'backend/fueldrop/**'
+      - 'tools/nearby*'
+      - 'tools/polish-backend.cjs'
+      - '.github/workflows/nearby-truck-qa.yml'
+permissions:
+  contents: read
+concurrency:
+  group: fillmenow-nearby-truck-stage
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Apply reviewed source changes without production credentials
+        run: |
+          python3 tools/nearby-release-apply.py
+          git diff --check
+          node tools/nearby-test.cjs
+          node tools/backend-route-test.cjs
+          node tools/qld-grade-guard-test.cjs
+          node tools/stable-price-pagination-test.cjs
+          node tools/polish-backend.cjs backend/fueldrop/index.ts
+      - name: Install pinned browser test tools
+        run: |
+          npm install --prefix /tmp/fmn-qa --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          /tmp/fmn-qa/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Test new Nearby controls and preserve existing app behaviour
+        env:
+          NODE_PATH: /tmp/fmn-qa/node_modules
+        run: |
+          node tools/nearby-browser-test.cjs
+          node tools/support-release-test.cjs
+          node tools/saved-stations-test.cjs
+          node tools/dash-position-test.cjs
+          node tools/exact-map-test.cjs
+      - name: Commit only passing source to the same feature branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/feature/nearby-truck-20261009
+          git add web/index.html web/sw.js web/privacy.html web/support-chat.js backend/fueldrop/index.ts
+          if ! git diff --cached --quiet; then
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Apply verified Nearby filters, truck profiles and price-quality safeguards'
+            git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/feature/nearby-truck-20261009
+          fi
+          mkdir -p qa-results/nearby
+          git rev-parse HEAD > qa-results/nearby/review-commit.txt
+      - name: Preserve reviewed source and evidence without secrets
+        if: always()
+        run: |
+          mkdir -p qa-results/nearby
+          cp -r web qa-results/nearby/reviewed-web
+          cp -r backend/fueldrop qa-results/nearby/reviewed-backend
+          cp tools/nearby* qa-results/nearby/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fillmenow-nearby-truck-evidence
+          path: qa-results/
+          retention-days: 7

@@ -29,7 +29,7 @@ function classify(text){const s=String(text).toLowerCase();
  if(/suggest|improve|would like|feature|recommend/.test(s))return 'suggestion';return 'other';}
 function answer(text){const trimmed=String(text).trim().slice(0,700);if(!trimmed)return;lastQuestion=trimmed;lastTopic=classify(trimmed);message(trimmed,'user');
  if(/install|home screen/.test(trimmed.toLowerCase()))message('Open More → Install App. On iPhone, use Safari → Share → Add to Home Screen. Installing the web app is different from an App Store release. If installation fails, report your browser and what the install screen says.','bot');
- else if(/saved|favourite|favorite/.test(trimmed.toLowerCase()))message('Open a station’s details and choose Save. Your Saved tab keeps those stations on this device. Reset app data removes local saved stations and settings.','bot');
+ else if(/saved|favourite|favorite/.test(trimmed.toLowerCase()))message('Open a station’s details and choose Save. To remove it later, open Saved and tap Remove under that station. This only removes your saved shortcut; the station stays on the map. Your choice is remembered on this device after reopening the app.','bot');
  else message(topics[lastTopic].answer,'bot');
  if(/bug|glitch|broken|not work|doesn.t|complain|wrong|overlap|flash|flicker|missing|crash/.test(trimmed.toLowerCase()))message('Which screen were you using, what did you expect, and what happened instead? Use “Report this problem” to review a private note. Nothing is submitted until you confirm.','bot');input.value='';}
 function viewport(){if(!dialog)return;const v=window.visualViewport;dialog.style.setProperty('--help-height',(v?v.height:innerHeight)+'px');dialog.style.setProperty('--help-top',(v?v.offsetTop:0)+'px');}

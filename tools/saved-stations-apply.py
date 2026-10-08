@@ -7,7 +7,6 @@ p=Path('web/index.html')
 s=p.read_text()
 if 'FMN_SAVED_CONTROLS_20261008' not in s:
     original=s
-    # Internal provider IDs remain untouched for pricing, markers and navigation.
     old='if(sid)m.push(["Station ID",sid,"id-mini"]);'
     assert s.count(old)==1
     s=s.replace(old,'',1)
@@ -59,4 +58,9 @@ body #savedList .saved-remove{background:#fff;color:#304638;border:1px solid #a9
 @media(max-width:900px) and (max-height:500px){.fmn-help{top:var(--help-top,0);bottom:auto;height:var(--help-height,100dvh);align-items:stretch}.fmn-help .help-shell{width:100%;height:100%;border-radius:0;border:0}.fmn-help .help-header{padding:10px 14px}.fmn-help .help-header h2{font-size:20px}.fmn-help .help-header p{margin-top:2px}.fmn-help .help-composer{padding:8px 14px}.fmn-help .help-footer{padding-top:6px;padding-bottom:max(6px,env(safe-area-inset-bottom))}}
 '''
     p.write_text(s)
-print('Prepared public station-ID removal, explicit saved-station deletion and landscape help layout.')
+# Keep the existing guided helper accurate after adding explicit removal.
+p=Path('web/support-chat.js')
+s=p.read_text()
+s=s.replace('Open a station’s details and choose Save. Your Saved tab keeps those stations on this device. Reset app data removes local saved stations and settings.', 'Open a station’s details and choose Save. To remove it later, open Saved and tap Remove under that station. This only removes your saved shortcut; the station stays on the map. Your choice is remembered on this device after reopening the app.')
+p.write_text(s)
+print('Prepared public station-ID removal, saved-station removal and matching guided help.')

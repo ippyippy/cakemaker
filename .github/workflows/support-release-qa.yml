@@ -1,0 +1,73 @@
+name: FillMeNow support and Queensland release QA
+on:
+  push:
+    branches: [release/support-startup-qld-20261008]
+    paths:
+      - 'tools/public-support-qld-apply.py'
+      - 'tools/support-release-test.cjs'
+      - 'web/support-chat.js'
+      - 'web/startup-support.css'
+      - 'backend/fueldrop/support.ts'
+      - '.github/workflows/support-release-qa.yml'
+permissions:
+  contents: read
+concurrency:
+  group: fillmenow-support-qld-candidate
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Prepare the reviewed local source without publishing or reading production secrets
+        run: |
+          python3 tools/public-support-qld-apply.py
+          git diff --check
+      - name: Install pinned isolated browser test tools
+        run: |
+          npm install --prefix /tmp/fmn-qa --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          /tmp/fmn-qa/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Verify startup, private feedback and Queensland isolation using fixtures
+        env:
+          NODE_PATH: /tmp/fmn-qa/node_modules
+        run: |
+          node tools/support-release-test.cjs
+          node tools/backend-route-test.cjs
+          node tools/polish-backend.cjs backend/fueldrop/index.ts
+      - name: Preserve rounded movable Dash and exact station markers
+        env:
+          NODE_PATH: /tmp/fmn-qa/node_modules
+        run: |
+          node tools/dash-position-test.cjs
+          node tools/exact-map-test.cjs
+      - name: Commit only the passing application files to this candidate branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          test "$GITHUB_REF" = refs/heads/release/support-startup-qld-20261008
+          git add web/index.html web/privacy.html web/terms.html web/sw.js backend/fueldrop/index.ts backend/fueldrop/native-push.ts android/PLAY_STORE_LISTING.md
+          if ! git diff --cached --quiet; then
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Apply verified startup, private support and scoped Queensland integration'
+            git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/release/support-startup-qld-20261008
+          fi
+          mkdir -p qa-results/support-release
+          git rev-parse HEAD > qa-results/support-release/review-commit.txt
+      - name: Save reviewed public source and test evidence
+        if: always()
+        run: |
+          mkdir -p qa-results/support-release
+          cp -r web qa-results/support-release/reviewed-web
+          cp -r backend/fueldrop qa-results/support-release/reviewed-backend
+          cp tools/support-release-test.cjs qa-results/support-release/test-source.cjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fillmenow-support-qld-evidence
+          path: qa-results/
+          retention-days: 7

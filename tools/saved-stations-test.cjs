@@ -13,11 +13,14 @@ async function run(engine,width,height){const b=await({chromium,webkit}[engine])
  await c.route('**/functions/v1/fueldrop*',r=>{if(!['GET','OPTIONS'].includes(r.request().method())){writes++;return r.fulfill({status:503,json:{ok:false}})}const api=new URL(r.request().url()).searchParams.get('api');return r.fulfill({json:api==='prices'?{ok:true,rows,price_date:'2026-10-08'}:api==='status'?{ok:true,launchStates:['NSW','WA','TAS','QLD']}:{ok:true,regions:[]}})});
  const p=await c.newPage();p.on('pageerror',e=>errors.push(e.message));p.setDefaultTimeout(20000);await p.goto('https://fillmenow.vercel.app/',{waitUntil:'domcontentloaded'});await p.waitForFunction(()=>!!window.FD&&Number(document.getElementById('statCount').textContent)>0);
  await p.evaluate(()=>FD.options());await p.locator('.option-row').first().waitFor();assert.equal(await p.locator('.option-id').count(),0);assert.ok(!(await p.locator('#optionsList').innerText()).includes('PRIVATE-QA-ID'));
+ // Real map station selection occurs on Explore; desktop details live in its decision column.
+ await p.evaluate(()=>document.querySelector('.nav[data-page="explore"]').click());
  await p.evaluate(id=>FD.open(id),rows[0].station_id);const save=width>=1025?p.locator('#desktopStationSave'):p.locator('#stationSave');await save.click();
  assert.ok(!(await p.locator(width>=1025?'#desktopStationMetrics':'#stationMetrics').innerText()).includes('Station ID'));
  await p.evaluate(id=>FD.open(id),rows[1].station_id);await save.click();
  await p.evaluate(()=>document.querySelector('.nav[data-page="saved"]').click());await p.locator('.saved-card').first().waitFor();assert.equal(await p.locator('.saved-card').count(),2);assert.equal(await p.locator('.saved-remove').count(),2);assert.ok(!(await p.locator('#savedList').innerText()).includes('PRIVATE-QA-ID'));
  const geometries=await p.locator('.saved-card').evaluateAll(cards=>cards.map(e=>{const a=e.querySelector('.saved-navigate').getBoundingClientRect(),b=e.querySelector('.saved-remove').getBoundingClientRect();return {separate:a.right<=b.left||a.bottom<=b.top,height:b.height}}));assert.ok(geometries.every(x=>x.separate&&x.height>=44));
+ await p.screenshot({path:path.join(out,engine+'-'+width+'-saved-controls.png')});
  await p.locator('.saved-remove').first().click();assert.equal(await p.locator('.saved-card').count(),1);assert.ok((await p.locator('#savedList').innerText()).includes('Shell'));assert.ok(!(await p.locator('#savedList').innerText()).includes('BP fixture'));
  const ids=await p.evaluate(()=>JSON.parse(localStorage.getItem('fdSaved')).map(x=>x.station_id));assert.deepEqual(ids,[rows[1].station_id]);
  await p.reload({waitUntil:'domcontentloaded'});await p.waitForFunction(()=>!!window.FD);await p.evaluate(()=>document.querySelector('.nav[data-page="saved"]').click());assert.equal(await p.locator('.saved-card').count(),1);

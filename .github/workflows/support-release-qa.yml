@@ -5,8 +5,9 @@ on:
     paths:
       - 'tools/public-support-qld-apply.py'
       - 'tools/support-release-test.cjs'
+      - 'tools/saved-stations-apply.py'
+      - 'tools/saved-stations-test.cjs'
       - 'web/support-chat.js'
-      - 'web/startup-support.css'
       - 'backend/fueldrop/support.ts'
       - '.github/workflows/support-release-qa.yml'
 permissions:
@@ -24,9 +25,10 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
-      - name: Prepare the reviewed local source without publishing or reading production secrets
+      - name: Prepare reviewed local source without publishing or accessing production secrets
         run: |
           python3 tools/public-support-qld-apply.py
+          python3 tools/saved-stations-apply.py
           git diff --check
       - name: Install pinned isolated browser test tools
         run: |
@@ -37,6 +39,7 @@ jobs:
           NODE_PATH: /tmp/fmn-qa/node_modules
         run: |
           node tools/support-release-test.cjs
+          node tools/saved-stations-test.cjs
           node tools/backend-route-test.cjs
           node tools/polish-backend.cjs backend/fueldrop/index.ts
       - name: Preserve rounded movable Dash and exact station markers
@@ -45,15 +48,15 @@ jobs:
         run: |
           node tools/dash-position-test.cjs
           node tools/exact-map-test.cjs
-      - name: Commit only the passing application files to this candidate branch
+      - name: Commit only passing application files to this candidate branch
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
           test "$GITHUB_REF" = refs/heads/release/support-startup-qld-20261008
-          git add web/index.html web/privacy.html web/terms.html web/sw.js backend/fueldrop/index.ts backend/fueldrop/native-push.ts android/PLAY_STORE_LISTING.md
+          git add web/index.html web/privacy.html web/terms.html web/sw.js web/startup-support.css backend/fueldrop/index.ts backend/fueldrop/native-push.ts android/PLAY_STORE_LISTING.md
           if ! git diff --cached --quiet; then
-            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Apply verified startup, private support and scoped Queensland integration'
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Apply verified startup, private support, saved controls and scoped Queensland integration'
             git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/release/support-startup-qld-20261008
           fi
           mkdir -p qa-results/support-release

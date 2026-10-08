@@ -1,15 +1,17 @@
+// FMN_QLD_SUPPORT_20261008
+import { supportAPI } from "./support.ts";
 // Existing fueldrop Edge Function v61, with a guarded public price response.
 // Legacy assets are snapshotted separately without changing their response bytes.
 import * as webpush from "jsr:@negrel/webpush@0.5.0";
 import { nativePushAPI, sendNativePushes, mergePushRuns } from "./native-push.ts";
 import { HTML, ICON, MANIFEST, SW } from "./legacy-assets.ts";
 
-const CORS={"access-control-allow-origin":"*","access-control-allow-methods":"GET,POST,OPTIONS","access-control-allow-headers":"content-type,authorization,apikey"};
+const CORS={"access-control-allow-origin":"*","access-control-allow-methods":"GET,POST,DELETE,OPTIONS","access-control-allow-headers":"content-type,authorization,apikey"};
 function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store",...CORS}})}
 async function geocode(q,state="NSW"){
  q=String(q||"").trim().replace(/\s+/g," ").toLowerCase().replace(/[^a-z0-9 -]/g,"").slice(0,80);
  const st=String(state||"NSW").toUpperCase();
- if(q.length<2||!["NSW","WA","TAS"].includes(st))return[];
+ if(q.length<2||!["NSW","WA","TAS","QLD"].includes(st))return[];
  try{
   const base=Deno.env.get("SUPABASE_URL")||"",headers=adminHeaders();
   if(!base)return[];
@@ -110,7 +112,7 @@ async function savePushSubscription(body:any){
  const lat=clampNum(body?.latitude,-90,90,NaN),lng=clampNum(body?.longitude,-180,180,NaN);if(!Number.isFinite(lat)||!Number.isFinite(lng))return {ok:false,error:"location_required"};
  const fuel=FUEL_TYPES.has(body?.fuel_type)?body.fuel_type:"Diesel";
  const requestedState=cleanText(body?.state_code,3).toUpperCase();
- const state=["NSW","WA","TAS"].includes(requestedState)?requestedState:"NSW";
+ const state=["NSW","WA","TAS","QLD"].includes(requestedState)?requestedState:"NSW";
  const region=cleanText(body?.region_name,120)||null;
  const allowedFreq=new Set(["off","daily","weekdays","twice_daily","price_drop_only"]);
  const frequency=allowedFreq.has(body?.notification_frequency)?body.notification_frequency:"daily";
@@ -176,7 +178,7 @@ async function sendDailyPushes(){
  const subs=await listActiveSubscriptions();if(!subs.length)return {ok:true,subscriptions:0,sent:0,skipped:0,failed:0};
  const server=await pushServer(),fuelCache=new Map<string,any>();let sent=0,skipped=0,failed=0,gone=0;
  for(const sub of subs){
-  const state=String(sub.state_code||"NSW").toUpperCase();if(!["NSW","WA","TAS"].includes(state)){skipped++;continue}
+  const state=String(sub.state_code||"NSW").toUpperCase();if(!["NSW","WA","TAS","QLD"].includes(state)){skipped++;continue}
   const freq=String(sub.notification_frequency||"daily");
   if(freq==="off"||freq==="price_drop_only"){skipped++;continue}
   const tz=sub.timezone||timezoneForState(state),day=dateInTimezone(tz),localTime=timeInTimezone(tz);
@@ -267,7 +269,7 @@ async function providerInfo(state:string){
  const base=Deno.env.get("SUPABASE_URL")||"",key=adminApiKey();
  if(!base||!key)return null;
  const st=String(state||"NSW").toUpperCase();
- if(!["NSW","WA","TAS"].includes(st))return null;
+ if(!["NSW","WA","TAS","QLD"].includes(st))return null;
  const code=encodeURIComponent(st);
  const r=await fetch(base+"/rest/v1/fuel_data_providers?select=provider_code,provider_name,is_realtime,typical_delay_minutes,attribution,status&state_codes=cs.{"+code+"}&limit=1",{headers:adminHeaders()});
  if(!r.ok)return null;const rows=await r.json();
@@ -282,6 +284,10 @@ function selectComparableFuelRows(rows:any[]){
   if(!prior||Number(row.price)<Number(prior.price)||(Number(row.price)===Number(prior.price)&&row.fuel_type==="Diesel"&&prior.fuel_type!=="Diesel"))stations.set(id,row);
  }
  return [...stations.values()].sort((a,b)=>Number(a.price)-Number(b.price)||String(a.station_id).localeCompare(String(b.station_id)));
+}
+async function qldCoverageReady(){
+ if(!(Deno.env.get("QLD_FUEL_API_TOKEN")||"").trim())return false;
+ try{const base=Deno.env.get("SUPABASE_URL")||"";const r=await fetch(base+"/rest/v1/fuel_price_daily?select=synced_at&state_code=eq.QLD&provider_code=eq.qld-fpqld&order=synced_at.desc&limit=1",{headers:adminHeaders(),signal:AbortSignal.timeout(8000)});if(!r.ok)return false;const rows=await r.json();const age=Array.isArray(rows)&&rows.length?Date.now()-Date.parse(rows[0].synced_at):NaN;return Number.isFinite(age)&&age>=0&&age<86400000;}catch{return false}
 }
 async function latestFuelRows(fuel,state="QLD",lat?:number,lng?:number,radiusKm?:number){
  const st=String(state||"QLD").toUpperCase().replace(/[^A-Z]/g,"").slice(0,3)||"QLD";
@@ -355,7 +361,7 @@ function appFuelName(name:string){
  if(n.includes("98"))return "U98";
  if(n.includes("95"))return "U95";
  if(n.includes("91")||n==="unleaded"||n.includes("unleaded petrol"))return "U91";
- if(n.includes("diesel")&&!n.includes("premium"))return "Diesel";
+ if(n.includes("diesel"))return n.includes("premium")?"Premium Diesel":"Diesel";
  return null;
 }
 function brisbaneDate(){
@@ -379,12 +385,12 @@ async function removeOlderRows(table:string,syncedAt:string,extraFilter=""){
  const url=base+"/rest/v1/"+table+"?synced_at=lt."+encodeURIComponent(syncedAt)+(extraFilter?"&"+extraFilter:"");
  const r=await fetch(url,{method:"DELETE",headers});if(!r.ok)throw new Error("supabase_"+table+"_cleanup_failed_"+r.status);
 }
-async function readAllRows(table:string,select:string){
+async function readAllRows(table:string,select:string,filter=""){
  const base=Deno.env.get("SUPABASE_URL")||"",out:any[]=[];let offset=0;
  while(offset<20000){
-  const r=await fetch(base+"/rest/v1/"+table+"?select="+select+"&limit=1000&offset="+offset,{headers:adminHeaders()});
+  const r=await fetch(base+"/rest/v1/"+table+"?select="+select+(filter?"&"+filter:"")+"&order="+(table==="fuel_site_reference"?"station_id.asc":"fuel_id.asc")+"&limit=1000&offset="+offset,{headers:adminHeaders()});
   if(!r.ok)throw new Error("supabase_"+table+"_read_failed_"+r.status);
-  const page=await r.json();if(!Array.isArray(page))break;out.push(...page);if(page.length<1000)break;offset+=1000;
+  const page=await r.json();if(!Array.isArray(page))throw new Error("invalid_reference_response");out.push(...page);if(page.length<1000)break;offset+=1000;
  }
  return out;
 }
@@ -406,12 +412,13 @@ async function refreshQueenslandReference(){
   const mod=Date.parse(String(s.M||""));
   siteRows.push({station_id:String(id),provider_station_id:String(id),state_code:"QLD",provider_code:"qld-fpqld",region_name:suburbs.get(Number(s.G1))||null,station_name:String(s.N||"Fuel station"),brand:brands.get(Number(s.B))||null,brand_id:Number.isFinite(Number(s.B))?Number(s.B):null,suburb:suburbs.get(Number(s.G1))||null,suburb_region_id:Number.isFinite(Number(s.G1))?Number(s.G1):null,address:String(s.A||""),postcode:s.P?String(s.P):null,latitude:lat,longitude:lng,source_modified_at:Number.isFinite(mod)?new Date(mod).toISOString():null,synced_at:syncedAt});
  }
+ if(!fuelRows.length||!siteRows.length)throw new Error("qld_empty_reference_snapshot");
  const fuelsWritten=await upsertRows("fuel_type_reference","fuel_id",fuelRows),sitesWritten=await upsertRows("fuel_site_reference","station_id",siteRows);
- await removeOlderRows("fuel_type_reference",syncedAt);await removeOlderRows("fuel_site_reference",syncedAt);
+ await removeOlderRows("fuel_type_reference",syncedAt);await removeOlderRows("fuel_site_reference",syncedAt,"state_code=eq.QLD&provider_code=eq.qld-fpqld");
  return {ok:true,source:"Queensland Fuel Price Reporting Direct API",referenceSyncedAt:syncedAt,fuelsWritten,sitesWritten};
 }
 async function loadQueenslandReference(){
- const [fuels,sites]=await Promise.all([readAllRows("fuel_type_reference","fuel_id,name,app_fuel_type"),readAllRows("fuel_site_reference","station_id,station_name,brand,suburb,address,postcode,latitude,longitude")]);
+ const [fuels,sites]=await Promise.all([readAllRows("fuel_type_reference","fuel_id,name,app_fuel_type"),readAllRows("fuel_site_reference","station_id,station_name,brand,suburb,address,postcode,latitude,longitude","state_code=eq.QLD&provider_code=eq.qld-fpqld")]);
  return {fuels:new Map<number,string>(fuels.map((x:any)=>[Number(x.fuel_id),String(x.app_fuel_type||"")])),sites:new Map<string,any>(sites.map((x:any)=>[String(x.station_id),x])),fuelCount:fuels.length,siteCount:sites.length};
 }
 async function upsertFuelRows(rows:any[]){return await upsertRows("fuel_price_daily","station_id,fuel_type,price_date",rows)}
@@ -424,12 +431,13 @@ async function syncQueenslandFuel(){
  const qs="?countryId=21&geoRegionLevel=3&geoRegionId=1",priceRes=await qldGet("/Price/GetSitesPrices"+qs);
  const date=brisbaneDate(),syncedAt=new Date().toISOString(),rows:any[]=[];
  for(const p of qldArray(priceRes,["SitePrices","Prices","P"])){
-  const raw=Number(p.Price);if(!Number.isFinite(raw)||raw===9999)continue;
+  const raw=Number(p.Price);if(!Number.isFinite(raw)||raw<=0||raw===9999)continue;
   const fuelType=refs.fuels.get(Number(p.FuelId));if(!fuelType)continue;
   const s=refs.sites.get(String(p.SiteId));if(!s)continue;
   const lat=Number(s.latitude),lng=Number(s.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lng))continue;
   rows.push({station_id:String(p.SiteId),state_code:"QLD",provider_code:"qld-fpqld",fuel_type:fuelType,price_date:date,station_name:String(s.station_name||"Fuel station"),brand:s.brand||null,suburb:s.suburb||null,address:String(s.address||""),postcode:s.postcode?String(s.postcode):null,latitude:lat,longitude:lng,price:raw/10,transaction_date_utc:p.TransactionDateUtc||null,synced_at:syncedAt});
  }
+ if(!rows.length)throw new Error("qld_empty_price_snapshot");
  const written=await upsertFuelRows(rows);await removeStaleSnapshotRows(date,syncedAt);
  return {ok:true,source:"Queensland Fuel Price Reporting Direct API",priceDate:date,snapshotSyncedAt:syncedAt,rowsWritten:written,sitesLoaded:refs.siteCount,pricesReceived:qldArray(priceRes,["SitePrices","Prices","P"]).length,referenceBootstrapped};
 }
@@ -462,7 +470,8 @@ Deno.serve(async req=>{
  if(asset==="manifest")return new Response(MANIFEST,{headers:{"content-type":"application/manifest+json; charset=utf-8","cache-control":"public,max-age=3600"}});
  if(asset==="icon")return new Response(ICON,{headers:{"content-type":"image/svg+xml; charset=utf-8","cache-control":"public,max-age=86400"}});
  if(asset==="sw")return new Response(SW,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-cache","service-worker-allowed":"/functions/v1/fueldrop"}});
- if(url.searchParams.get("api")==="status"){const vapid=await configValue("vapid_public_key");return json({ok:true,launchStates:["NSW","WA","TAS"],pushConfigured:Boolean(vapid)})}
+ if(url.searchParams.get("api")==="status"){const vapid=await configValue("vapid_public_key");return json({ok:true,launchStates:["NSW","WA","TAS",...(await qldCoverageReady()?["QLD"]:[])],pushConfigured:Boolean(vapid)})}
+ if(["support-report","support-delete"].includes(url.searchParams.get("api")||"")){const a=await supportAPI(url.searchParams.get("api")!,req,{base:()=>Deno.env.get("SUPABASE_URL")||"",headers:adminHeaders});return json(a!.body,a!.status)}
  const nativeDeps={base:()=>Deno.env.get("SUPABASE_URL")||"",headers:adminHeaders,fuelRows:latestFuelRows,rank:valueRank};
  if(["native-push-status","native-subscribe","native-unsubscribe"].includes(url.searchParams.get("api")||"")){const response=await nativePushAPI(url.searchParams.get("api")!,req,nativeDeps);return json(response!.body,response!.status)}
  if(url.searchParams.get("api")==="push-public-key"){const key=await configValue("vapid_public_key");return key?json({configured:true,publicKey:key}):json({configured:false,error:"push_not_configured"},503)}
@@ -480,7 +489,7 @@ Deno.serve(async req=>{
   }catch(e){return json({ok:false,error:String(e&&e.message||e)},500)}
  }
  if(url.searchParams.get("api")==="sync"){if(!await isAdminRequest(req))return json({ok:false,error:"unauthorized"},401);try{return json(await syncQueenslandFuel())}catch(e){return json({ok:false,error:String(e&&e.message||e)},500)}}
- if(url.searchParams.get("api")==="prices"){try{const hasGeo=url.searchParams.has("lat")&&url.searchParams.has("lng")&&url.searchParams.has("radius");return json(publicPricePayload(await latestFuelRows(url.searchParams.get("fuel")||"Diesel",url.searchParams.get("state")||"NSW",hasGeo?Number(url.searchParams.get("lat")):undefined,hasGeo?Number(url.searchParams.get("lng")):undefined,hasGeo?Number(url.searchParams.get("radius")):undefined)))}catch(e){return json({ok:false,rows:[],error:"price_unavailable"},500)}}
+ if(url.searchParams.get("api")==="prices"){try{if(url.searchParams.get("state")==="QLD"&&!await qldCoverageReady())return json({ok:false,rows:[],error:"coverage_pending"},503);const hasGeo=url.searchParams.has("lat")&&url.searchParams.has("lng")&&url.searchParams.has("radius");return json(publicPricePayload(await latestFuelRows(url.searchParams.get("fuel")||"Diesel",url.searchParams.get("state")||"NSW",hasGeo?Number(url.searchParams.get("lat")):undefined,hasGeo?Number(url.searchParams.get("lng")):undefined,hasGeo?Number(url.searchParams.get("radius")):undefined)))}catch(e){return json({ok:false,rows:[],error:"price_unavailable"},500)}}
  if(url.searchParams.get("api")==="regions"){try{return json({state:(url.searchParams.get("state")||"NSW").toUpperCase(),regions:await nationalRegions(url.searchParams.get("state")||"NSW")})}catch(e){return json({regions:[],error:"regions_failed"},500)}}
  if(url.searchParams.get("api")==="geocode"){try{return json({candidates:(await geocode(url.searchParams.get("q")||"",url.searchParams.get("state")||"NSW")).map((x:any)=>({label:x.label,state:x.state,suburb:x.suburb,postcode:x.postcode,lat:x.lat,lng:x.lng}))})}catch(e){return json({candidates:[],error:"geocode_failed"})}}
  return new Response(HTML,{status:200,headers:new Headers([["Content-Type","text/html; charset=utf-8"],["Cache-Control","no-store, no-cache, must-revalidate"],["Pragma","no-cache"],["Referrer-Policy","strict-origin-when-cross-origin"]])});

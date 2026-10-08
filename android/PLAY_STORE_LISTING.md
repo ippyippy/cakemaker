@@ -49,7 +49,8 @@ Privacy Policy: https://fillmenow-au.vercel.app/privacy.html
 
 Privacy Policy: https://fillmenow-au.vercel.app/privacy.html  
 Terms & Disclaimer: https://fillmenow-au.vercel.app/terms.html  
-Support / privacy email: michael@itglandscape.com.au
+Support / privacy: https://fillmenow.vercel.app/?help=1
+Store-console contact details require a separate FillMeNow support contact before native submission.
 
 ## Recommended target audience
 

@@ -34,7 +34,7 @@ function numeric(v: any, min: number, max: number) {
 
 export function nativeSettings(body: any) {
   if (!numeric(body?.latitude, -90, 90) || !numeric(body?.longitude, -180, 180) ||
-      !["NSW", "WA", "TAS"].includes(body?.state_code) || !fuels.has(body?.fuel_type) ||
+      !["NSW", "WA", "TAS", "QLD"].includes(body?.state_code) || !fuels.has(body?.fuel_type) ||
       !frequencies.has(body?.notification_frequency) ||
       !numeric(body?.radius_km, 1, 100) || !numeric(body?.tank_litres, 20, 1500) ||
       !numeric(body?.economy_l_per_100km, 2, 80)) return null;
@@ -147,7 +147,7 @@ export async function sendApplePush(sub: any, payload: any, collapseID: string) 
 }
 
 function localParts(state: string, now: Date) {
-  const tz = state === "WA" ? "Australia/Perth" : state === "TAS" ? "Australia/Hobart" : "Australia/Sydney";
+  const tz = state === "QLD" ? "Australia/Brisbane" : state === "WA" ? "Australia/Perth" : state === "TAS" ? "Australia/Hobart" : "Australia/Sydney";
   const parts = new Intl.DateTimeFormat("en-AU", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", weekday: "short", hourCycle: "h23" }).formatToParts(now);
   const get = (name: string) => parts.find(p => p.type === name)?.value || "";
   return { day: get("year") + "-" + get("month") + "-" + get("day"), hm: get("hour") + ":" + get("minute"), weekday: get("weekday") };

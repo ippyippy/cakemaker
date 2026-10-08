@@ -1,0 +1,52 @@
+name: Stable fuel price pagination QA
+on:
+  push:
+    branches: [fix/qld-pagination-20261009]
+    paths:
+      - tools/stable-price-pagination*
+      - .github/workflows/stable-price-pagination-qa.yml
+permissions:
+  contents: read
+concurrency:
+  group: fillmenow-stable-price-pagination
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Apply and test narrow price-query repair without production access
+        run: |
+          python3 tools/stable-price-pagination.py
+          node tools/stable-price-pagination-test.cjs
+          node tools/qld-grade-guard-test.cjs
+          node tools/backend-route-test.cjs
+          node tools/polish-backend.cjs backend/fueldrop/index.ts
+          git diff --check
+      - name: Commit only tested backend source to this candidate branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/fix/qld-pagination-20261009
+          git add backend/fueldrop/index.ts
+          if ! git diff --cached --quiet; then
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Keep all stations when paginating equal fuel prices'
+            git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/fix/qld-pagination-20261009
+          fi
+          git rev-parse HEAD > qa-results/pagination/review-commit.txt
+      - name: Preserve reviewed source
+        if: always()
+        run: |
+          mkdir -p qa-results/pagination
+          cp backend/fueldrop/index.ts qa-results/pagination/reviewed-index.ts
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fillmenow-pagination-evidence
+          path: qa-results/
+          retention-days: 7

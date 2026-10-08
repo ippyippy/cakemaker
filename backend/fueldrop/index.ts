@@ -274,6 +274,15 @@ async function providerInfo(state:string){
  if(!Array.isArray(rows)||!rows.length)return null;
  const p=rows[0];return {...p,status:(p.status==="connected_trial"||p.status==="connected"||p.status==="live")?"connected":"unavailable"};
 }
+// FMN_DIESEL_COVERAGE_20261008
+function selectComparableFuelRows(rows:any[]){
+ const stations=new Map<string,any>();
+ for(const row of rows){
+  const id=String(row.station_id),prior=stations.get(id);
+  if(!prior||Number(row.price)<Number(prior.price)||(Number(row.price)===Number(prior.price)&&row.fuel_type==="Diesel"&&prior.fuel_type!=="Diesel"))stations.set(id,row);
+ }
+ return [...stations.values()].sort((a,b)=>Number(a.price)-Number(b.price)||String(a.station_id).localeCompare(String(b.station_id)));
+}
 async function latestFuelRows(fuel,state="QLD",lat?:number,lng?:number,radiusKm?:number){
  const st=String(state||"QLD").toUpperCase().replace(/[^A-Z]/g,"").slice(0,3)||"QLD";
  const provider=await providerInfo(st);
@@ -282,13 +291,14 @@ async function latestFuelRows(fuel,state="QLD",lat?:number,lng?:number,radiusKm?
  if(!base||!key)return {connected:false,rows:[],error:"supabase_server_credentials_missing",state_code:st,provider};
  const f=encodeURIComponent(String(fuel||"Diesel").slice(0,20));
  const stateFilter="&state_code=eq."+encodeURIComponent(st);
+ const fuelFilter=String(fuel||"Diesel")==="Diesel"?"fuel_type=in.(Diesel,Premium%20Diesel)":"fuel_type=eq."+f;
  const la=Number(lat),lo=Number(lng),rk=Number(radiusKm);let geoFilter="";
  if(Number.isFinite(la)&&Number.isFinite(lo)&&Number.isFinite(rk)&&rk>=1&&rk<=100){
   const latDelta=rk/110.574,cos=Math.max(.2,Math.abs(Math.cos(la*Math.PI/180))),lngDelta=rk/(111.320*cos);
   const minLat=(la-latDelta).toFixed(6),maxLat=(la+latDelta).toFixed(6),minLng=(lo-lngDelta).toFixed(6),maxLng=(lo+lngDelta).toFixed(6);
   geoFilter="&latitude=gte."+minLat+"&latitude=lte."+maxLat+"&longitude=gte."+minLng+"&longitude=lte."+maxLng;
  }
- const d=await fetch(base+"/rest/v1/fuel_price_daily?select=price_date&fuel_type=eq."+f+stateFilter+"&order=price_date.desc&limit=1",{headers:adminHeaders()});
+ const d=await fetch(base+"/rest/v1/fuel_price_daily?select=price_date&"+fuelFilter+stateFilter+"&order=price_date.desc&limit=1",{headers:adminHeaders()});
  if(!d.ok)return {connected:false,rows:[],error:"supabase_price_date_query_failed",state_code:st,provider};
  const dates=await d.json();
  if(!Array.isArray(dates)||!dates.length)return {connected:true,rows:[],price_date:null,state_code:st,provider,qldCredentialConfigured:st==="QLD"?qldConfigured:undefined};
@@ -296,14 +306,14 @@ async function latestFuelRows(fuel,state="QLD",lat?:number,lng?:number,radiusKm?
  const select="station_id,state_code,provider_code,station_name,brand,suburb,address,postcode,latitude,longitude,price,fuel_type,price_date,transaction_date_utc,synced_at";
  const rows:any[]=[];let offset=0;const pageSize=1000;
  while(offset<10000){
-  const u=base+"/rest/v1/fuel_price_daily?select="+select+"&fuel_type=eq."+f+stateFilter+geoFilter+"&price_date=eq."+encodeURIComponent(date)+"&order=price.asc&limit="+pageSize+"&offset="+offset;
+  const u=base+"/rest/v1/fuel_price_daily?select="+select+"&"+fuelFilter+stateFilter+geoFilter+"&price_date=eq."+encodeURIComponent(date)+"&order=price.asc&limit="+pageSize+"&offset="+offset;
   const r=await fetch(u,{headers:adminHeaders()});
   if(!r.ok)return {connected:false,rows:[],error:"supabase_price_query_failed",state_code:st,provider};
   const page=await r.json();if(!Array.isArray(page))break;rows.push(...page);if(page.length<pageSize)break;offset+=pageSize;
  }
  let snapshotSyncedAt:string|null=null;
  for(const x of rows){if(x.synced_at&&(!snapshotSyncedAt||String(x.synced_at)>snapshotSyncedAt))snapshotSyncedAt=String(x.synced_at)}
- return {connected:true,rows,price_date:date,snapshot_synced_at:snapshotSyncedAt,state_code:st,provider,source:provider?.provider_name||"FillMeNow government data cache"};
+ return {connected:true,rows:selectComparableFuelRows(rows),price_date:date,snapshot_synced_at:snapshotSyncedAt,state_code:st,provider,source:provider?.provider_name||"FillMeNow government data cache"};
 }
 
 function publicPricePayload(payload:any){

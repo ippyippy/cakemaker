@@ -77,13 +77,13 @@ function installPopupFooters(){
   var parent=button.parentElement;if(parent&&/head/.test(parent.className)){var gap=document.createElement("span");gap.className="head-spacer";gap.setAttribute("aria-hidden","true");parent.insertBefore(gap,button)}
   button.remove();button.classList.add("popup-back");button.innerHTML='‹ <span>Back</span>';
   var bar=document.createElement("div");bar.className="popup-footer";bar.appendChild(button);
-  if(shell.classList.contains("modal")){var scroll=document.createElement("div");scroll.className="popup-scroll";while(shell.firstChild)scroll.appendChild(shell.firstChild);shell.appendChild(scroll);shell.classList.add("popup-shell")}
+  if(shell.classList.contains("modal")){shell.style.setProperty("padding","0","important");var scroll=document.createElement("div");scroll.className="popup-scroll";while(shell.firstChild)scroll.appendChild(shell.firstChild);shell.appendChild(scroll);shell.classList.add("popup-shell")}
   shell.appendChild(bar);
  }
  footer($("stationModal").querySelector(".modal"),$("stationClose"));
  footer($("areaModal").querySelector(".modal"),$("areaClose"));
  footer($("settingsDrawer"),$("drawerBack"));
- var desktop=$("desktopDetailBack");if(desktop)footer(desktop.closest(".desktop-station-panel"),desktop);
+ var desktop=$("desktopDetailBack");if(desktop)footer(desktop.closest(".desktop-station-detail"),desktop);
  var options=$("optionsBack");if(options){options.classList.add("bottom-page-back");options.innerHTML='‹ <span>Back</span>'}
  var exit=$("exitDrive");if(exit){exit.classList.add("bottom-page-back");exit.innerHTML='‹ <span>Back</span>'}
 }

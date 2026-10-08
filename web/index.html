@@ -2366,6 +2366,7 @@ body #page-explore .price-marker.station-pin .brand-word{font-size:9px!important
 .station-pin-leaders line{stroke:#455b68;stroke-width:1.2;stroke-opacity:.75}
 </style>
 
+<link rel="stylesheet" href="/interaction-polish.css">
 </head>
 <body>
 <main class="app" id="appMain">
@@ -2622,7 +2623,7 @@ function brandRank(brand,name,rank){
 var toastTimer=null;function toast(t){clearTimeout(toastTimer);$("toast").textContent=t;$("toast").classList.add("show");toastTimer=setTimeout(function(){$("toast").classList.remove("show")},4000)}
 function fuels(){return FUELS[prefs.state]||FUELS.NSW} function syncFuel(){var fs=fuels();if(fs.indexOf(prefs.fuel)<0)prefs.fuel=fs[0];[$("fuelSelect"),$("modalFuel"),$("mobileFuelSelect")].forEach(function(s){if(!s)return;s.innerHTML=fs.map(function(f){return "<option>"+f+"</option>"}).join("");s.value=prefs.fuel});if($("mobileRadiusSelect"))$("mobileRadiusSelect").value=String(prefs.radius);syncVehicleLabel()} function syncVehicleLabel(){var n={car:"Car",ute:"Ute / van",truck:"Truck",heavy:"Heavy truck",custom:"Custom"};if($("mobileVehicleLabel"))$("mobileVehicleLabel").textContent=n[prefs.vehicle]||"Custom"}
 function areaText(){var t=loc?(loc.label||"Selected area"):"Choose location";if($("areaLabel"))$("areaLabel").textContent=t;if($("topArea"))$("topArea").textContent=t;if($("mapArea"))$("mapArea").textContent=t;summary=null;ranked=[];if(!loc||!rows.length){if(!loc&&typeof clearMapMarkers==="function")clearMapMarkers();return null}var a=rows.map(function(x){var d=dkm(+loc.lat,+loc.lng,+x.latitude,+x.longitude),p=+x.price;if(!Number.isFinite(d)||!Number.isFinite(p)||d>prefs.radius||p<=0)return null;var road=d*1.18,travel=road*2*prefs.economy/100*(p/100),eff=((prefs.tank*p/100)+travel)/prefs.tank*100;return Object.assign({},x,{distance:d,road:road,travel:travel,effective:eff,etaMin:Math.max(2,Math.round(road/45*60))})}).filter(Boolean);if(!a.length)return null;var ps=a.map(function(x){return x.price}).sort(function(x,y){return x-y}),med=ps[Math.floor(ps.length/2)];a.forEach(function(x){x.saving=prefs.tank*(med-x.price)/100-x.travel});ranked=a.sort(function(x,y){return x.effective-y.effective||x.price-y.price||x.distance-y.distance});var cheapest=a.slice().sort(function(x,y){return x.price-y.price||x.distance-y.distance})[0],nearest=a.slice().sort(function(x,y){return x.distance-y.distance})[0];summary={best:ranked[0],cheapest:cheapest,nearest:nearest,count:a.length,median:med};return summary}
-function bestHtml(b){var diff=Math.max(0,summary.median-b.price);return '<div class="best-price fuel-price">'+brandMark(b.brand,b.station_name)+b.price.toFixed(1)+'<span>¢/L</span></div><h2>'+esc(b.station_name)+'</h2><div class="best-meta">'+esc(prefs.fuel)+' · '+b.distance.toFixed(1)+' km · est. '+b.etaMin+' min</div><div class="saving"><strong>Save about '+cash(b.saving)+'</strong><span>estimated on a '+Math.round(prefs.tank)+' L fill</span></div><div class="reason">'+(diff>0?diff.toFixed(1)+'¢/L below the area median.':"Best estimated trip value in your range.")+'</div><div class="actions"><button class="btn btn-go" onclick="FD.nav(&quot;'+esc(b.station_id)+'&quot;)">GO</button><button class="btn btn-light" onclick="FD.open(&quot;'+esc(b.station_id)+'&quot;)">Details</button><button class="drive-btn" onclick="FD.options()">View all options</button><button class="drive-btn" onclick="FD.drive()">Drive Mode</button></div>'}
+function bestHtml(b){var diff=Math.max(0,summary.median-b.price);return '<div class="best-price fuel-price">'+brandMark(b.brand,b.station_name)+b.price.toFixed(1)+'<span>¢/L</span></div><h2>'+esc(b.station_name)+'</h2><div class="best-meta">'+esc(b.fuel_type||prefs.fuel)+' · '+b.distance.toFixed(1)+' km · est. '+b.etaMin+' min</div><div class="saving"><strong>Save about '+cash(b.saving)+'</strong><span>estimated on a '+Math.round(prefs.tank)+' L fill</span></div><div class="reason">'+(diff>0?diff.toFixed(1)+'¢/L below the area median.':"Best estimated trip value in your range.")+'</div><div class="actions"><button class="btn btn-go" onclick="FD.nav(&quot;'+esc(b.station_id)+'&quot;)">GO</button><button class="btn btn-light" onclick="FD.open(&quot;'+esc(b.station_id)+'&quot;)">Details</button><button class="drive-btn" onclick="FD.options()">View all options</button><button class="drive-btn" onclick="FD.drive()">Drive Mode</button></div>'}
 function altRows(limit,start){start=start||0;return ranked.slice(start,start+limit).map(function(x,i){var rank=start+i+1;return '<button type="button" class="alt compact-alt" onclick="FD.open(&quot;'+esc(x.station_id)+'&quot;)"><div class="alt-brand">'+brandRank(x.brand,x.station_name,rank)+'</div><div class="compact-alt-main"><b>'+esc(x.station_name)+'</b><span>'+esc(x.suburb||"")+' · '+x.distance.toFixed(1)+' km</span></div><div class="alt-price"><b>'+x.price.toFixed(1)+'¢</b><span>'+(x.saving>0?cash(x.saving):"")+'</span></div></button>'}).join("")}
 function render(){
  $("radiusSelect").value=String(prefs.radius);$("fuelSelect").value=prefs.fuel;summary=areaText();
@@ -2633,7 +2634,7 @@ function render(){
   $("sheetMain").innerHTML='<div class="sheet-label">BEST STOP</div><div class="sheet-station" role="status">'+esc(message)+'</div><div class="sheet-actions"><button class="sheet-go" onclick="FD.'+(loc?'refresh()':'area()')+'"'+(priceStatus==="loading"?' disabled':'')+'>'+(priceStatus==="loading"?'Loading…':loc?'Refresh':'Choose area')+'</button></div>';
   $("sheetAlts").innerHTML="";renderMap();renderDrive();return;
  }var b=summary.best;$("desktopBest").innerHTML=bestHtml(b);$("statCheapest").innerHTML='<span class="fuel-price">'+brandMark(summary.cheapest.brand,summary.cheapest.station_name)+summary.cheapest.price.toFixed(1)+'¢</span>';$("statNearest").textContent=summary.nearest.distance.toFixed(1)+" km";$("statCount").textContent=String(summary.count);$("desktopAlts").innerHTML=altRows(2,1)+'<button type="button" class="alt-all" onclick="FD.options()">View all '+summary.count+' options</button>';
- $("sheetMain").innerHTML='<div class="sheet-top"><div><div class="sheet-label">BEST STOP</div><div class="sheet-station">'+esc(b.station_name)+'</div><div class="sheet-price fuel-price">'+brandMark(b.brand,b.station_name)+b.price.toFixed(1)+'<span>¢/L</span></div><div class="sheet-meta">'+b.distance.toFixed(1)+' km · est. '+b.etaMin+' min · '+esc(prefs.fuel)+'</div></div><div class="sheet-save"><b>Save about '+cash(b.saving)+'</b><span>on a '+Math.round(prefs.tank)+' L fill</span></div></div><div class="sheet-actions"><button class="sheet-go" onclick="FD.nav(&quot;'+esc(b.station_id)+'&quot;)">GO  ›</button></div><button class="sheet-options-link" onclick="FD.options()">View all options</button>';
+ $("sheetMain").innerHTML='<div class="sheet-top"><div><div class="sheet-label">BEST STOP</div><div class="sheet-station">'+esc(b.station_name)+'</div><div class="sheet-price fuel-price">'+brandMark(b.brand,b.station_name)+b.price.toFixed(1)+'<span>¢/L</span></div><div class="sheet-meta">'+b.distance.toFixed(1)+' km · est. '+b.etaMin+' min · '+esc(b.fuel_type||prefs.fuel)+'</div></div><div class="sheet-save"><b>Save about '+cash(b.saving)+'</b><span>on a '+Math.round(prefs.tank)+' L fill</span></div></div><div class="sheet-actions"><button class="sheet-go" onclick="FD.nav(&quot;'+esc(b.station_id)+'&quot;)">GO  ›</button></div><button class="sheet-options-link" onclick="FD.options()">View all options</button>';
  $("sheetAlts").innerHTML=ranked.slice(0,6).map(function(x,i){return '<div class="sheet-alt" onclick="FD.open(&quot;'+esc(x.station_id)+'&quot;)"><div class="sheet-alt-brand">'+brandRank(x.brand,x.station_name,i+1)+'</div><div><b>'+esc(x.station_name)+'</b><span>'+x.distance.toFixed(1)+' km · '+x.effective.toFixed(1)+'¢ after travel</span></div><div class="sheet-alt-price">'+x.price.toFixed(1)+'¢</div></div>'}).join("");renderMap();renderDrive()
 }
 async function load(){
@@ -2699,100 +2700,95 @@ function ensureMap(){
 }
 // FMN_INDIVIDUAL_BRANDS_20261008: no count clusters and no collision-based hiding.
 var individualPins=[],pinLeaders=null;
-function markerProfile(){
- var detailed=!!map&&map.getZoom()>=12;
- return {detailed:detailed,width:detailed?66:48,height:detailed?68:48};
-}
+// FMN_EXACT_PINS_APPLIED_20261008
+// Replaces only the existing map-marker implementation, inside its existing closure.
+var stationPinById=new Map(),userLocationPin=null;
+function markerProfile(){return {detailed:!!map&&map.getZoom()>=12,width:60,height:66}}
 function clearMapMarkers(){
- if(!Array.isArray(mapLayer))mapLayer=[];
- mapLayer.forEach(function(m){try{m.remove()}catch(e){}});mapLayer=[];individualPins=[];
+ if(Array.isArray(mapLayer))mapLayer.forEach(function(m){try{m.remove()}catch(e){}});
+ mapLayer=[];individualPins=[];stationPinById.clear();userLocationPin=null;
  if(pinLeaders){pinLeaders.remove();pinLeaders=null}
 }
 function syncMapStationCount(){
  var e=$("mapStationCount");if(!e)return;
  e.textContent=!loc?"Choose area":ranked.length+" station"+(ranked.length===1?"":"s")+" · View all";
- e.setAttribute("role","button");e.tabIndex=0;
- e.setAttribute("aria-label",!loc?"Choose a search area":"View all "+ranked.length+" nearby stations");
+ e.setAttribute("role","button");e.tabIndex=0;e.setAttribute("aria-label",!loc?"Choose a search area":"View all "+ranked.length+" nearby stations");
  e.onclick=function(){if(loc)showPage("options");else openArea()};
  e.onkeydown=function(event){if(event.key==="Enter"||event.key===" "){event.preventDefault();e.click()}};
 }
 function renderMapMarkers(){
- syncMapStationCount();
- if(!map||!window.maplibregl)return;
- clearMapMarkers();if(!loc)return;
- var host=$("exploreMap"),w=host.clientWidth,h=host.clientHeight,profile=markerProfile();
- if(w<1||h<1)return;
- var user=document.createElement("div");user.className="user-map-marker";user.setAttribute("aria-label","Your selected location");
- mapLayer.push(new maplibregl.Marker({element:user,anchor:"center"}).setLngLat([+loc.lng,+loc.lat]).addTo(map));
- pinLeaders=document.createElementNS("http://www.w3.org/2000/svg","svg");pinLeaders.classList.add("station-pin-leaders");pinLeaders.setAttribute("aria-hidden","true");host.appendChild(pinLeaders);
- var seen=new Set();
+ syncMapStationCount();if(!map||!window.maplibregl)return;
+ if(!loc){clearMapMarkers();return}
+ if(!userLocationPin){var user=document.createElement("div");user.className="user-map-marker";user.setAttribute("aria-label","Your selected location");userLocationPin=new maplibregl.Marker({element:user,anchor:"center"}).setLngLat([+loc.lng,+loc.lat]).addTo(map)}
+ else userLocationPin.setLngLat([+loc.lng,+loc.lat]);
+ var seen=new Set(),profile=markerProfile();
  ranked.forEach(function(x){
   if(x.latitude==null||x.longitude==null||!Number.isFinite(+x.latitude)||!Number.isFinite(+x.longitude))return;
   var id=String(x.station_id);if(seen.has(id))return;seen.add(id);
-  var q=map.project([+x.longitude,+x.latitude]);
-  if(!Number.isFinite(q.x)||!Number.isFinite(q.y)||q.x<0||q.x>w||q.y<0||q.y>h)return;
-  var el=document.createElement("button"),best=x===ranked[0];el.type="button";
-  el.className="price-marker station-pin "+(profile.detailed?"pin-detail":"pin-compact")+(best?" best":"");
-  el.dataset.stationId=id;el.dataset.stationCount="1";
-  el.innerHTML=brandMark(x.brand,x.station_name)+'<span class="pin-price">'+(+x.price).toFixed(1)+'<small>¢</small></span>';
-  el.setAttribute("aria-label",x.station_name+", "+(+x.price).toFixed(1)+" cents per litre. Open station details.");
-  el.title=(x.brand||x.station_name)+" · "+(+x.price).toFixed(1)+"¢/L";
-  el.onclick=function(e){e.preventDefault();e.stopPropagation();openStation(x.station_id);highlightStationPin(x.station_id)};
-  var m=new maplibregl.Marker({element:el,anchor:"center"}).setLngLat([+x.longitude,+x.latitude]).addTo(map);
-  var line=document.createElementNS("http://www.w3.org/2000/svg","line");pinLeaders.appendChild(line);
-  individualPins.push({marker:m,element:el,station:x,line:line});mapLayer.push(m);
+  var pin=stationPinById.get(id),el;
+  if(!pin){
+   el=document.createElement("button");el.type="button";el.className="price-marker station-pin";el.dataset.stationId=id;el.dataset.stationCount="1";
+   // Arrow extends 8px below the tile. Its tip, not the tile centre, owns the coordinate.
+   var marker=new maplibregl.Marker({element:el,anchor:"bottom",offset:[0,-8],subpixelPositioning:true}).setLngLat([+x.longitude,+x.latitude]).addTo(map);
+   pin={marker:marker,element:el,station:x,signature:""};stationPinById.set(id,pin);
+   el.onclick=function(e){e.preventDefault();e.stopPropagation();openExactPin(id)};
+  }
+  el=pin.element;
+  var sig=[x.brand,x.station_name,x.price,x.fuel_type].join("|");
+  if(sig!==pin.signature){el.innerHTML=brandMark(x.brand,x.station_name)+'<span class="pin-price">'+(+x.price).toFixed(1)+'<small>¢</small></span>';pin.signature=sig}
+  if(+pin.station.longitude!==+x.longitude||+pin.station.latitude!==+x.latitude)pin.marker.setLngLat([+x.longitude,+x.latitude]);
+  pin.station=x;el.classList.toggle("best",x===ranked[0]);el.classList.toggle("pin-detail",profile.detailed);el.classList.toggle("pin-compact",!profile.detailed);
+  el.dataset.latitude=String(x.latitude);el.dataset.longitude=String(x.longitude);el.dataset.fuelGrade=x.fuel_type||prefs.fuel;
+  el.setAttribute("aria-label",x.station_name+", "+(x.fuel_type||prefs.fuel)+", "+(+x.price).toFixed(1)+" cents per litre. Open station details.");
+  el.title=(x.brand||x.station_name)+" · "+(x.fuel_type||prefs.fuel)+" · "+(+x.price).toFixed(1)+"¢/L";
  });
- host.dataset.visibleStations=String(individualPins.length);layoutMapLabels();
- if(current)highlightStationPin(current.station_id);
+ stationPinById.forEach(function(pin,id){if(!seen.has(id)){pin.marker.remove();stationPinById.delete(id)}});
+ individualPins=Array.from(stationPinById.values());mapLayer=[userLocationPin].concat(individualPins.map(function(p){return p.marker}));
+ layoutMapLabels();if(current)highlightStationPin(current.station_id);
 }
-function highlightStationPin(id){
- individualPins.forEach(function(pin){var selected=String(pin.station.station_id)===String(id);pin.element.classList.toggle("selected",selected);pin.element.setAttribute("aria-pressed",selected?"true":"false")});
-}
+function highlightStationPin(id){individualPins.forEach(function(pin){var selected=String(pin.station.station_id)===String(id);pin.element.classList.toggle("selected",selected);pin.element.setAttribute("aria-pressed",selected?"true":"false")})}
 var mapLabelFrame=0;
-function scheduleMapLabelLayout(){
- if(mapLabelFrame)return;
- mapLabelFrame=requestAnimationFrame(function(){mapLabelFrame=0;layoutMapLabels()});
-}
+function scheduleMapLabelLayout(){if(mapLabelFrame)return;mapLabelFrame=requestAnimationFrame(function(){mapLabelFrame=0;layoutMapLabels()})}
 function layoutMapLabels(){
  if(!map||document.body.dataset.page!=="explore")return;
- var host=$("exploreMap"),w=host.clientWidth,h=host.clientHeight,profile=markerProfile(),pw=profile.width,ph=profile.height,gap=5,placed=[];
- if(!w||!h)return;
- if(pinLeaders){pinLeaders.setAttribute("viewBox","0 0 "+w+" "+h);pinLeaders.setAttribute("width",w);pinLeaders.setAttribute("height",h)}
- function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
- function collides(point){return placed.some(function(a){return Math.abs(a.x-point.x)<pw+gap&&Math.abs(a.y-point.y)<ph+gap})}
- function inside(point){return point.x>=pw/2+4&&point.x<=w-pw/2-4&&point.y>=ph/2+4&&point.y<=h-ph/2-4}
- var ordered=individualPins.slice().sort(function(a,b){return String(a.station.station_id).localeCompare(String(b.station.station_id))});
- var crowded=false;
- ordered.forEach(function(pin){
-  var q=map.project(pin.marker.getLngLat());
-  pin.element.classList.toggle("pin-detail",profile.detailed);pin.element.classList.toggle("pin-compact",!profile.detailed);
-  var origin={x:clamp(q.x,pw/2+4,w-pw/2-4),y:clamp(q.y,ph/2+4,h-ph/2-4)},chosen=origin;
-  if(collides(origin)){
-   chosen=null;
-   // Fan out in screen space only: geographic coordinates and navigation stay exact.
-   for(var ring=1;ring<=9&&!chosen;ring++){
-    var steps=8*ring;
-    for(var i=0;i<steps;i++){
-     var angle=2*Math.PI*i/steps,candidate={x:origin.x+Math.cos(angle)*ring*(pw+gap),y:origin.y+Math.sin(angle)*ring*(ph+gap)};
-     if(inside(candidate)&&!collides(candidate)){chosen=candidate;break}
-    }
-   }
-   if(!chosen){
-    var bestDistance=Infinity;
-    for(var yy=ph/2+4;yy<=h-ph/2-4;yy+=ph+gap){for(var xx=pw/2+4;xx<=w-pw/2-4;xx+=pw+gap){
-     var spot={x:xx,y:yy},dist=(xx-origin.x)**2+(yy-origin.y)**2;
-     if(dist<bestDistance&&!collides(spot)){chosen=spot;bestDistance=dist}
-    }}
-   }
-   // At continent-scale density there may be no free screen space. Never remove a station.
-   if(!chosen){chosen=origin;crowded=true}
-  }
-  placed.push(chosen);var dx=chosen.x-q.x,dy=chosen.y-q.y;pin.marker.setOffset([dx,dy]);
-  pin.element.style.visibility="visible";pin.element.tabIndex=0;pin.element.removeAttribute("aria-hidden");
-  pin.line.setAttribute("x1",q.x);pin.line.setAttribute("y1",q.y);pin.line.setAttribute("x2",chosen.x);pin.line.setAttribute("y2",chosen.y);
-  pin.line.style.display=Math.hypot(dx,dy)>8?"":"none";
+ var host=$("exploreMap"),profile=markerProfile(),count=0;
+ individualPins.forEach(function(pin){
+  var el=pin.element;if(el.classList.contains("pin-detail")!==profile.detailed){el.classList.toggle("pin-detail",profile.detailed);el.classList.toggle("pin-compact",!profile.detailed);pin.marker.setOffset([0,-8])}
+  var p=map.project(pin.marker.getLngLat());if(p.x>=0&&p.y>=0&&p.x<=host.clientWidth&&p.y<=host.clientHeight)count++;
  });
- host.dataset.pinLayout=crowded?"dense-zoom-in":"separated";
+ host.dataset.visibleStations=String(count);host.dataset.pinLayout="exact-coordinates";
+}
+function openExactPin(id){
+ var chosen=stationPinById.get(String(id));if(!chosen)return;
+ var box=chosen.element.getBoundingClientRect();
+ var nearby=individualPins.filter(function(pin){var r=pin.element.getBoundingClientRect();return r.left<box.right&&r.right>box.left&&r.top<box.bottom&&r.bottom>box.top});
+ if(nearby.length<2){openStation(id);highlightStationPin(id);return}
+ // Keep the pins anchored. A chooser makes co-located/overlapping stations accessible without fake offsets.
+ var overlay=$("exactStationChooser");if(!overlay){
+  overlay=document.createElement("div");overlay.id="exactStationChooser";overlay.className="modal-bg";overlay.setAttribute("role","dialog");overlay.setAttribute("aria-modal","true");overlay.setAttribute("aria-label","Choose a station");
+  overlay.innerHTML='<div class="modal popup-shell"><div class="popup-scroll"><h2>Choose a station</h2><p>These pins overlap at this zoom. Each arrow stays at its actual location.</p><div id="exactStationChoices"></div></div><div class="popup-footer"><button type="button" class="popup-back">‹ Back</button></div></div>';
+  document.body.appendChild(overlay);overlay.querySelector(".popup-back").onclick=function(){overlay.classList.remove("open")};overlay.onclick=function(e){if(e.target===overlay)overlay.classList.remove("open")};
+  overlay.addEventListener("keydown",function(e){if(e.key==="Escape"){e.preventDefault();e.stopPropagation();overlay.classList.remove("open");chosen.element.focus()}});
+ }
+ var list=$("exactStationChoices");list.innerHTML="";
+ nearby.sort(function(a,b){return +a.station.price-+b.station.price}).forEach(function(pin){var x=pin.station,b=document.createElement("button");b.type="button";b.className="exact-station-choice";b.dataset.stationId=String(x.station_id);b.innerHTML=brandMark(x.brand,x.station_name)+'<span><b>'+esc(x.station_name)+'</b><small>'+esc(x.fuel_type||prefs.fuel)+' · '+(+x.price).toFixed(1)+'¢/L</small></span>';b.onclick=function(){overlay.classList.remove("open");openStation(x.station_id);highlightStationPin(x.station_id)};list.appendChild(b)});
+ overlay.classList.add("open");list.querySelector("button").focus();
+}
+function installPopupFooters(){
+ function footer(shell,button){
+  if(!shell||!button||shell.querySelector(":scope > .popup-footer"))return;
+  var parent=button.parentElement;if(parent&&/head/.test(parent.className)){var gap=document.createElement("span");gap.className="head-spacer";gap.setAttribute("aria-hidden","true");parent.insertBefore(gap,button)}
+  button.remove();button.classList.add("popup-back");button.innerHTML='‹ <span>Back</span>';
+  var bar=document.createElement("div");bar.className="popup-footer";bar.appendChild(button);
+  if(shell.classList.contains("modal")){shell.style.setProperty("padding","0","important");var scroll=document.createElement("div");scroll.className="popup-scroll";while(shell.firstChild)scroll.appendChild(shell.firstChild);shell.appendChild(scroll);shell.classList.add("popup-shell")}
+  shell.appendChild(bar);
+ }
+ footer($("stationModal").querySelector(".modal"),$("stationClose"));
+ footer($("areaModal").querySelector(".modal"),$("areaClose"));
+ footer($("settingsDrawer"),$("drawerBack"));
+ var desktop=$("desktopDetailBack");if(desktop)footer(desktop.closest(".desktop-station-detail"),desktop);
+ var options=$("optionsBack");if(options){options.classList.add("bottom-page-back");options.innerHTML='‹ <span>Back</span>'}
+ var exit=$("exitDrive");if(exit){exit.classList.add("bottom-page-back");exit.innerHTML='‹ <span>Back</span>'}
 }
 
 function renderMap(){
@@ -2812,7 +2808,7 @@ var viewportTimer=null;
 function refreshViewportMap(){
  clearTimeout(viewportTimer);
  viewportTimer=setTimeout(function(){
-  try{if(map&&loc){map.resize();renderMap();}}catch(e){}
+  try{if(map&&loc){map.resize();renderMapMarkers();}}catch(e){}
  },140)
 }
 window.addEventListener("resize",refreshViewportMap);
@@ -2883,7 +2879,7 @@ async function search(q){
 }
 function find(id){return ranked.find(function(x){return String(x.station_id)===String(id)})||rows.find(function(x){return String(x.station_id)===String(id)})||saved.find(function(x){return String(x.station_id)===String(id)})}
 function navigate(x){if(x)window.open("https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(x.latitude+","+x.longitude),"_blank","noopener")}
-function stationMetricsHtml(x,d){var m=[],sid=x.station_id===undefined||x.station_id===null?"":String(x.station_id);if(sid)m.push(["Station ID",sid,"id-mini"]);if(Number.isFinite(+x.price))m.push(["Price",(+x.price).toFixed(1)+"¢/L","price-mini"]);if(Number.isFinite(d))m.push(["Distance",d.toFixed(1)+" km",""]);if(Number.isFinite(+x.effective))m.push(["After travel",(+x.effective).toFixed(1)+"¢/L",""]);if(Number.isFinite(+x.saving)&&x.saving>0)m.push(["Est. saving",cash(x.saving),""]);return m.map(function(z){var isPrice=z[0]==="Price",extra=z[2]||"";return '<div class="station-mini '+extra+'"><span>'+esc(z[0])+'</span><b class="'+(isPrice?"fuel-price":"")+'">'+(isPrice?brandMark(x.brand,x.station_name):"")+esc(z[1])+'</b></div>'}).join("")}
+function stationMetricsHtml(x,d){var m=[],sid=x.station_id===undefined||x.station_id===null?"":String(x.station_id);m.push(["Fuel",x.fuel_type||prefs.fuel,""]);if(sid)m.push(["Station ID",sid,"id-mini"]);if(Number.isFinite(+x.price))m.push(["Price",(+x.price).toFixed(1)+"¢/L","price-mini"]);if(Number.isFinite(d))m.push(["Distance",d.toFixed(1)+" km",""]);if(Number.isFinite(+x.effective))m.push(["After travel",(+x.effective).toFixed(1)+"¢/L",""]);if(Number.isFinite(+x.saving)&&x.saving>0)m.push(["Est. saving",cash(x.saving),""]);return m.map(function(z){var isPrice=z[0]==="Price",extra=z[2]||"";return '<div class="station-mini '+extra+'"><span>'+esc(z[0])+'</span><b class="'+(isPrice?"fuel-price":"")+'">'+(isPrice?brandMark(x.brand,x.station_name):"")+esc(z[1])+'</b></div>'}).join("")}
 function openStation(id){
  var x=find(id);if(!x)return;current=x;highlightStationPin(id);
  var d=Number.isFinite(x.distance)?x.distance:(loc?dkm(loc.lat,loc.lng,x.latitude,x.longitude):NaN),addr=[x.address,x.suburb,x.postcode].filter(Boolean).join(" · "),metrics=stationMetricsHtml(x,d),saveText=isSaved(x.station_id)?"Remove saved":"Save";
@@ -2942,12 +2938,12 @@ function renderOptions(group){var list=Array.isArray(group)?group:ranked;var gro
  if($("optionsChangeArea"))$("optionsChangeArea").onclick=openArea;
  if($("optionsWiden"))$("optionsWiden").onclick=function(){prefs.radius=nextRadius;persist();syncFuel();load();syncSub()};
  return}
-var reset=$("mapGroupReset");if(!reset){reset=document.createElement("button");reset.id="mapGroupReset";reset.type="button";reset.className="btn btn-soft full-btn";reset.textContent="Show all nearby stations";reset.onclick=function(){renderOptions()};$("optionsList").before(reset)}reset.hidden=!grouped;if(grouped)$("optionsSummary").textContent=list.length+" grouped stations · ranked by estimated total trip cost.";$("optionsList").innerHTML=list.map(function(x,i){var sid=x.station_id===undefined||x.station_id===null?"":String(x.station_id);return '<div class="option-row '+(i===0?"best":"")+'"><div class="option-brand">'+brandRank(x.brand,x.station_name,i+1)+'</div><div class="option-main"><b>'+esc(x.station_name)+'</b>'+(sid?'<span class="option-id">ID '+esc(sid)+'</span>':"")+'<strong>'+x.price.toFixed(1)+'¢</strong><span>'+x.distance.toFixed(1)+' km · est. '+x.etaMin+' min · '+x.effective.toFixed(1)+'¢ after travel</span>'+(x.saving>0?'<span class="option-save">Save about '+cash(x.saving)+'</span>':"")+'</div><button class="option-go" onclick="FD.nav(&quot;'+esc(x.station_id)+'&quot;)">GO</button></div>'}).join("")}
+var reset=$("mapGroupReset");if(!reset){reset=document.createElement("button");reset.id="mapGroupReset";reset.type="button";reset.className="btn btn-soft full-btn";reset.textContent="Show all nearby stations";reset.onclick=function(){renderOptions()};$("optionsList").before(reset)}reset.hidden=!grouped;if(grouped)$("optionsSummary").textContent=list.length+" grouped stations · ranked by estimated total trip cost.";$("optionsList").innerHTML=list.map(function(x,i){var sid=x.station_id===undefined||x.station_id===null?"":String(x.station_id);return '<div class="option-row '+(i===0?"best":"")+'"><div class="option-brand">'+brandRank(x.brand,x.station_name,i+1)+'</div><div class="option-main"><b>'+esc(x.station_name)+'</b>'+(sid?'<span class="option-id">ID '+esc(sid)+'</span>':"")+'<span class="option-fuel">'+esc(x.fuel_type||prefs.fuel)+'</span><strong>'+x.price.toFixed(1)+'¢</strong><span>'+x.distance.toFixed(1)+' km · est. '+x.etaMin+' min · '+x.effective.toFixed(1)+'¢ after travel</span>'+(x.saving>0?'<span class="option-save">Save about '+cash(x.saving)+'</span>':"")+'</div><button class="option-go" onclick="FD.nav(&quot;'+esc(x.station_id)+'&quot;)">GO</button></div>'}).join("")}
 function openDrawer(which){if(!$("page-more").classList.contains("active"))showPage("more");var d=$("settingsDrawer");d.classList.add("open");Array.from(document.querySelectorAll(".drawer-panel")).forEach(function(p){p.classList.remove("active")});var p=$("drawer-"+which);if(p)p.classList.add("active");$("drawerTitle").textContent=which==="vehicle"?"Vehicle Settings":which==="fuel"?"Fuel Type":which==="radius"?"Search Radius":"FillMeNow";if(which==="fuel")renderFuelChoices();if(which==="radius")renderRadiusChoices();if(which==="vehicle")moreUI()}
 function closeDrawer(){$("settingsDrawer").classList.remove("open")}
 function renderFuelChoices(){var el=$("fuelChoices");el.innerHTML=fuels().map(function(f){return '<button class="drawer-choice '+(f===prefs.fuel?"active":"")+'" data-fuel="'+esc(f)+'"><span>'+esc(f)+'</span><span>'+(f===prefs.fuel?"✓":"")+'</span></button>'}).join("");Array.from(el.querySelectorAll("[data-fuel]")).forEach(function(b){b.onclick=function(){prefs.fuel=this.dataset.fuel;persist();syncFuel();load();moreUI();closeDrawer()}})}
 function renderRadiusChoices(){var rs=[5,10,20,30,50,100],el=$("radiusChoices");el.innerHTML=rs.map(function(r){return '<button class="drawer-choice '+(r===prefs.radius?"active":"")+'" data-radius="'+r+'"><span>'+r+' km</span><span>'+(r===prefs.radius?"✓":"")+'</span></button>'}).join("");Array.from(el.querySelectorAll("[data-radius]")).forEach(function(b){b.onclick=function(){prefs.radius=+this.dataset.radius;persist();$("radiusSelect").value=String(prefs.radius);if($("mobileRadiusSelect"))$("mobileRadiusSelect").value=String(prefs.radius);load();syncSub();moreUI();closeDrawer()}})}
-function showInfo(kind){$("drawer-info").classList.add("active");$("settingsDrawer").classList.add("open");Array.from(document.querySelectorAll(".drawer-panel")).forEach(function(p){if(p.id!=="drawer-info")p.classList.remove("active")});var title="FillMeNow",body="";if(kind==="help"){title="Help & FAQ";body="<b>How is Best Stop chosen?</b><br>FillMeNow compares pump price with your estimated round-trip fuel cost and vehicle settings.<br><br><b>Are travel times exact?</b><br>No. Times shown are estimates until live route-aware navigation is connected.<br><br><b>Should I confirm the price?</b><br>Yes. Government fuel data can change or be delayed, so confirm the displayed pump price before purchase."}else if(kind==="privacy"){title="Privacy & data";body="<b>Location and saved settings</b><br>Your selected area, vehicle settings and saved stations are stored in this browser so FillMeNow can personalise nearby results.<br><br><b>Price alerts</b><br>If you enable alerts, FillMeNow stores your push subscription and the selected area, fuel, radius, vehicle and alert settings needed to send those alerts. Turning alerts off removes that push subscription. Reset FillMeNow clears the local browser data.<br><br><b>Permissions</b><br>You can change location and notification permissions at any time in your browser or device settings.<br><br><a href=\"/privacy.html\" target=\"_blank\" rel=\"noopener\">Read the full Privacy Policy</a>"}else{title="About FillMeNow";body="FillMeNow helps drivers compare nearby fuel by estimated total trip value, not just the cheapest sign price. Launch coverage is NSW, WA and Tasmania.<br><br><b>Fuel data</b><br>NSW and Tasmania: NSW Government FuelCheck. Western Australia: FuelWatch, Government of Western Australia.<br><br>Fuel prices can change. Confirm the displayed pump price before purchase.<br><br><b>Independent comparison</b><br>Retailer names and logos identify stations only. FillMeNow is independent and is not endorsed by or affiliated with these retailers."}$("drawerTitle").textContent=title;$("infoTitle").textContent=title;$("infoBody").innerHTML=body}
+function showInfo(kind){$("drawer-info").classList.add("active");$("settingsDrawer").classList.add("open");Array.from(document.querySelectorAll(".drawer-panel")).forEach(function(p){if(p.id!=="drawer-info")p.classList.remove("active")});var title="FillMeNow",body="";if(kind==="help"){title="Help & FAQ";body="<b>How is Best Stop chosen?</b><br>FillMeNow compares pump price with your estimated round-trip fuel cost and vehicle settings.<br><br><b>Are travel times exact?</b><br>No. Times shown are estimates until live route-aware navigation is connected.<br><br><b>Should I confirm the price?</b><br>Yes. Government fuel data can change or be delayed, so confirm the displayed pump price before purchase."}else if(kind==="privacy"){title="Privacy & data";body="<b>Location and saved settings</b><br>Your selected area, vehicle settings and saved stations are stored in this browser so FillMeNow can personalise nearby results.<br><br><b>Price alerts</b><br>If you enable alerts, FillMeNow stores your push subscription and the selected area, fuel, radius, vehicle and alert settings needed to send those alerts. Turning alerts off removes that push subscription. Reset FillMeNow clears the local browser data.<br><br><b>Permissions</b><br>You can change location and notification permissions at any time in your browser or device settings.<br><br><a href=\"/privacy.html\" target=\"_blank\" rel=\"noopener\">Read the full Privacy Policy</a>"}else{title="About FillMeNow";body="FillMeNow helps drivers compare nearby fuel by estimated total trip value, not just the cheapest sign price. Launch coverage is NSW, WA and Tasmania. Diesel comparisons include standard and premium diesel; each result shows its grade.<br><br><b>Fuel data</b><br>NSW and Tasmania: NSW Government FuelCheck. Western Australia: FuelWatch, Government of Western Australia.<br><br>Fuel prices can change. Confirm the displayed pump price before purchase.<br><br><b>Independent comparison</b><br>Retailer names and logos identify stations only. FillMeNow is independent and is not endorsed by or affiliated with these retailers."}$("drawerTitle").textContent=title;$("infoTitle").textContent=title;$("infoBody").innerHTML=body}
 function setPreset(k){prefs.vehicle=k;if(PRESETS[k]){prefs.tank=PRESETS[k].tank;prefs.economy=PRESETS[k].economy}$("tankInput").value=prefs.tank;$("economyInput").value=prefs.economy;Array.from(document.querySelectorAll(".preset")).forEach(function(b){b.classList.toggle("active",b.dataset.preset===k)});syncVehicleLabel()}
 function moreUI(){$("tankInput").value=prefs.tank;$("economyInput").value=prefs.economy;setPreset(prefs.vehicle||"custom");if($("vehicleSummary"))$("vehicleSummary").textContent=({car:"Car",ute:"Ute / van",truck:"Truck",heavy:"Heavy truck",custom:"Custom"})[prefs.vehicle]||"Custom";if($("fuelSummary"))$("fuelSummary").textContent=prefs.fuel;if($("radiusSummary"))$("radiusSummary").textContent=prefs.radius+" km";installState()}
 function alertUI(){if($("alertRadius")){$("alertRadius").value=Math.min(50,Math.max(5,prefs.alertRadius||prefs.radius));$("alertRadiusValue").textContent=$("alertRadius").value+" km"}$("alertFrequency").value=prefs.frequency;$("notifyTime").value=prefs.time1;$("notifyTime2").value=prefs.time2;$("priceDrop").value=prefs.threshold;$("time2Field").style.display=prefs.frequency==="twice_daily"?"flex":"none";Array.from(document.querySelectorAll(".freq-row")).forEach(function(r){r.classList.toggle("active",r.dataset.freq===prefs.frequency)});pushState()}
@@ -3046,7 +3042,7 @@ function renderDrive(){
 }
 function installState(){var s=$("installStatus");if(installPrompt){s.className="status ok";s.textContent="Ready to install."}else if(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches){s.className="status ok";s.textContent="FillMeNow is installed."}else{s.textContent="On iPhone: Share → Add to Home Screen. On Android or desktop, use Install app in your browser menu."}}
 async function install(){if(installPrompt){installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;installState()}else toast("Use Add to Home Screen / Install from your browser")}
-function bind(){Array.from(document.querySelectorAll(".nav")).forEach(function(b){b.onclick=function(){showPage(b.dataset.page)}});
+function bind(){installPopupFooters();Array.from(document.querySelectorAll(".nav")).forEach(function(b){b.onclick=function(){showPage(b.dataset.page)}});
 if($("optionsBack"))$("optionsBack").onclick=function(){showPage("explore")};
 if($("optionsFuel"))$("optionsFuel").onchange=function(){prefs.fuel=this.value;persist();syncFuel();load().then(renderOptions)};
 if($("optionsRadius"))$("optionsRadius").onchange=function(){prefs.radius=+this.value;persist();$("radiusSelect").value=String(prefs.radius);load().then(renderOptions);syncSub()};

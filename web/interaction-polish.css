@@ -1,0 +1,36 @@
+/* FMN_EXACT_PINS_ROUNDED_DASH_20261008 — keep mascot and station coordinates intact. */
+@media(max-width:1024px){
+ body #page-explore .mobile-sheet:not(.is-collapsed):before{
+  width:80px!important;height:80px!important;box-sizing:border-box!important;
+  border:1px solid #d5dfd7!important;border-radius:18px!important;padding:3px!important;
+  background-color:#fff!important;background-origin:content-box!important;background-clip:padding-box!important;
+  background-size:contain!important;background-position:center!important;filter:none!important;
+  box-shadow:0 3px 14px #10201530!important;clip-path:inset(0 round 18px)!important;
+ }
+ body #page-explore .mobile-sheet.is-collapsed .sheet-peek{border-radius:18px!important;clip-path:inset(0 round 18px)}
+}
+/* MapLibre owns transform. Do not transition, rebuild or offset pins during map movement. */
+body #page-explore .station-pin{transition:none!important;animation:none!important;overflow:visible!important;will-change:auto!important}
+body #page-explore .station-pin::after{content:""!important;display:block!important;position:absolute!important;left:50%!important;top:100%!important;bottom:auto!important;width:0!important;height:0!important;transform:translateX(-50%)!important;border-left:6px solid transparent!important;border-right:6px solid transparent!important;border-top:8px solid #15241b!important;pointer-events:none!important}
+body #page-explore .station-pin.best::after,body #page-explore .station-pin.selected::after{border-top-color:#087532!important}
+body #page-explore .station-pin:focus-visible{outline:3px solid #087532!important;outline-offset:3px!important;z-index:35!important}
+body .popup-shell{display:flex!important;flex-direction:column!important;overflow:hidden!important;padding:0!important;max-height:calc(100dvh - 28px)!important}
+body #stationModal .modal.popup-shell{overflow:hidden!important;max-height:100%!important}
+body .popup-scroll{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:18px;flex:1 1 auto}
+body #stationModal .popup-scroll{padding:0}
+body .popup-footer{position:relative;flex:0 0 auto;background:#fff;border-top:1px solid #dfe6df;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;justify-content:flex-start;z-index:5}
+body .popup-footer .popup-back,body .bottom-page-back{position:static!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;min-width:90px!important;min-height:46px!important;width:auto!important;height:auto!important;padding:10px 16px!important;margin:0!important;font-size:16px!important;font-weight:800!important;line-height:1.2!important;border:1px solid #cbd8cf!important;border-radius:12px!important;background:#fff!important;color:#15241b!important;cursor:pointer!important}
+body #settingsDrawer.open{display:flex!important;flex-direction:column!important;height:100dvh!important;overflow:hidden!important}
+body #settingsDrawer .drawer-head{flex:0 0 auto}
+body #settingsDrawer .drawer-body{flex:1 1 auto;min-height:0;overflow-y:auto;width:100%;overscroll-behavior:contain}
+body #optionsBack.bottom-page-back{position:fixed!important;left:12px!important;bottom:calc(var(--fmn-nav,64px) + 12px)!important;z-index:1010!important;box-shadow:0 3px 14px #10201530!important}
+body #exitDrive.bottom-page-back{position:fixed!important;left:12px!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;z-index:2102!important}
+body .drive-body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
+body #exactStationChooser{z-index:2050;align-items:flex-end}
+body #exactStationChooser .modal{width:min(560px,100%);border-radius:16px}
+body #exactStationChooser p{font-size:14px;line-height:1.5;color:#526057}
+body .exact-station-choice{display:flex;align-items:center;gap:12px;width:100%;padding:14px 8px;border:0;border-bottom:1px solid #dfe6df;background:white;text-align:left;color:#15241b;min-height:66px}
+body .exact-station-choice b{font-size:15px;line-height:1.35;display:block}
+body .exact-station-choice small{font-size:13px;line-height:1.4;display:block;margin-top:4px}
+body .exact-station-choice .brand-mark{width:40px;height:40px;flex:0 0 40px}
+@media(min-width:1025px){body #optionsBack.bottom-page-back{left:calc(78px + 14px)!important;bottom:14px!important}}

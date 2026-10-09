@@ -1,5 +1,36 @@
 {
   "schema_version": 1,
   "offers": [],
-  "access": []
+  "access": [],
+  "facilities": [
+    {
+      "state": "QLD",
+      "station_id": "61402436",
+      "kind": "operator_listed_truck_stop",
+      "name": "Shell Reddy Express Nudgee",
+      "source_url": "https://find.shell.com/au/fuel/10111406-shell-reddy-express-nudgee/en_AU",
+      "checked_at": "2026-10-09T01:00:00Z",
+      "note": "Shell lists Truck Friendly, high-flow diesel, truck parking and truck AdBlue at 1097 Nudgee Road. No numeric canopy or entrance clearance published."
+    },
+    {
+      "state": "QLD",
+      "station_id": "61478108",
+      "kind": "operator_listed_truck_stop",
+      "name": "IOR Eagle Farm",
+      "source_url": "https://www.ior.com.au/new-diesel-stop-eagle-farm-brisbane/",
+      "checked_at": "2026-10-09T01:00:00Z",
+      "source_published_at": "2020-06-08",
+      "note": "Operator identifies 1105 Kingsford Smith Drive as a diesel stop accessible to large heavy vehicles. No numeric clearance published. Confirm current access."
+    },
+    {
+      "state": "QLD",
+      "station_id": "61478247",
+      "kind": "operator_listed_truck_stop",
+      "name": "IOR Lytton",
+      "source_url": "https://www.ior.com.au/ior-lytton-is-now-open/",
+      "checked_at": "2026-10-09T01:00:00Z",
+      "source_published_at": "2024-09-16",
+      "note": "Operator identifies the diesel stop at 6 Radar Street and heavy-transport driveways. Wash-bay dimensions are not fuel-bay clearance. No numeric fuel-bay clearance published."
+    }
+  ]
 }

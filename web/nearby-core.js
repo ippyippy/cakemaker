@@ -6,7 +6,7 @@ function number(v){return v!==''&&v!=null&&Number.isFinite(Number(v))?Number(v):
 function truckMode(p){return p&&['truck','heavy'].includes(p.vehicle);}
 function validateTruck(raw){const t={configuration:String(raw?.configuration||'rigid')};for(const k of Object.keys(limits)){const v=number(raw?.[k]),[lo,hi]=limits[k];if(v===null||v<lo||v>hi)return {ok:false,field:k};t[k]=Math.round(v*100)/100;}if(!truckKinds.includes(t.configuration))return {ok:false,field:'configuration'};return {ok:true,truck:t};}
 function priceReview(row){const p=number(row?.price);return row?.recommendation_eligible===false||p===null||p<100||p>500;}
-function normaliseFilters(raw={},radius=20){let max=number(raw.maxKm),min=number(raw.minKm);max=max===null?radius:Math.max(1,Math.min(100,max));min=min===null?0:Math.max(0,Math.min(max,min));return {version:1,minKm:min,maxKm:max,sort:['value','price','distance','deal'].includes(raw.sort)?raw.sort:'value',deals:['all','active','eligible'].includes(raw.deals)?raw.deals:'all',access:raw.access==='matches'?'matches':'all'};}
+function normaliseFilters(raw={},radius=20){let max=number(raw.maxKm),min=number(raw.minKm);max=max===null?radius:Math.max(1,Math.min(100,max));min=min===null?0:Math.max(0,Math.min(max,min));return {version:1,minKm:min,maxKm:max,sort:['value','price','distance','deal'].includes(raw.sort)?raw.sort:'value',deals:['all','active','eligible'].includes(raw.deals)?raw.deals:'all',access:['matches','height','truckstops','unknown'].includes(raw.access)?raw.access:'all',travel:raw.travel==='towards'?'towards':'all'};}
 function https(v){try{const u=new URL(v);return u.protocol==='https:'&&!u.username&&!u.password;}catch{return false;}}
 function current(r,now){const start=Date.parse(r.starts_at),end=Date.parse(r.ends_at),checked=Date.parse(r.verified_at);return Number.isFinite(start)&&Number.isFinite(end)&&Number.isFinite(checked)&&checked<=now&&now-checked<=7*86400000&&start<=now&&end>now&&r.status==='verified';}
 function offerKey(o){return [o.id,o.verified_at,o.ends_at,o.discount_cpl,o.max_litres,o.minimum_litres,o.terms,o.terms_url,o.eligibility].join('|');}
@@ -27,13 +27,21 @@ function truckAccess(row,ctx,catalog,now=Date.now()){
  if(t.height+.1>r.height||t.width+.1>r.width)return {status:'unknown',label:'Limited clearance — check with station'};
  return {status:'match',label:'Matches recorded dimensions · route not checked'};
 }
+function facilityFor(row,ctx,catalog,now=Date.now()){
+ return (catalog?.facilities||[]).find(r=>r&&r.state===ctx.state&&String(r.station_id)===String(row.station_id)&&r.kind==='operator_listed_truck_stop'&&https(r.source_url)&&typeof r.note==='string'&&Number.isFinite(Date.parse(r.checked_at))&&Date.parse(r.checked_at)<=now&&now-Date.parse(r.checked_at)<90*86400000)||null;
+}
+function heightAccess(row,ctx,catalog,now=Date.now()){
+ const height=number(ctx.truck?.height),r=(catalog?.access||[]).find(r=>r&&r.state===ctx.state&&String(r.station_id)===String(row.station_id));
+ if(height===null||!r||r.status!=='verified'||!https(r.source_url)||!Number.isFinite(Date.parse(r.verified_at))||Date.parse(r.verified_at)>now||now-Date.parse(r.verified_at)>90*86400000||!Number.isFinite(Date.parse(r.expires_at))||Date.parse(r.expires_at)<=now||number(r.height)===null)return 'unknown';
+ return height+.1<=Number(r.height)+1e-9?'height-match':height>Number(r.height)?'mismatch':'limited';
+}
 function select(rows,ctx,filters,catalog,accepted=[],now=Date.now()){
  const f=normaliseFilters(filters,ctx.radius);const list=rows.filter(r=>Number.isFinite(r.distance)&&r.distance>=f.minKm&&r.distance<=f.maxKm).map(r=>{
   const offers=offersFor(r,ctx,catalog,accepted,now),access=truckAccess(r,ctx,catalog,now),best=offers.find(o=>o.qualifies);
-  return {...r,_offers:offers,_access:access,_review:priceReview(r),_dealSaving:best?.saving||0};
- }).filter(r=>(f.deals==='all'||r._offers.some(o=>f.deals==='active'||o.qualifies))&&(!truckMode(ctx)||f.access!=='matches'||r._access.status==='match'));
+  return {...r,_offers:offers,_access:access,_review:priceReview(r),_dealSaving:best?.saving||0,_facility:facilityFor(r,ctx,catalog,now),_height:heightAccess(r,ctx,catalog,now)};
+ }).filter(r=>(f.deals==='all'||r._offers.some(o=>f.deals==='active'||o.qualifies))&&(!truckMode(ctx)||f.access==='all'||(f.access==='matches'&&r._access.status==='match')||(f.access==='height'&&r._height==='height-match')||(f.access==='truckstops'&&r._facility)||(f.access==='unknown'&&r._access.status==='unknown')));
  const cost=r=>Number(r.effective)-((ctx.tank>0?r._dealSaving/ctx.tank:0)*100);
  list.sort((a,b)=>Number(a._review)-Number(b._review)||(f.sort==='distance'?a.distance-b.distance:f.sort==='price'?a.price-b.price:f.sort==='deal'?cost(a)-cost(b):a.effective-b.effective)||String(a.station_id).localeCompare(String(b.station_id)));return list;
 }
-return Object.freeze({number,truckMode,validateTruck,priceReview,normaliseFilters,offersFor,offerKey,truckAccess,select});
+return Object.freeze({number,truckMode,validateTruck,priceReview,normaliseFilters,offersFor,offerKey,truckAccess,heightAccess,facilityFor,select});
 });

@@ -1,0 +1,116 @@
+name: FillMeNow native GPS test APK
+on:
+  push:
+    branches: [feature/android-native-location-20261010]
+    paths: ['android/**', 'tools/android-native-smoke.py', '.github/workflows/android-native-gps-test.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fillmenow-native-gps-test
+  cancel-in-progress: false
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Check existing signing setup without exposing it
+        env:
+          KEYSTORE_B64: ${{ secrets.FILLMENOW_UPLOAD_KEYSTORE_BASE64 }}
+          KEY_PASSWORD: ${{ secrets.FILLMENOW_UPLOAD_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_B64" || { echo 'Existing FillMeNow upload keystore is not configured. No substitute production key generated.'; exit 1; }
+          test -n "$KEY_PASSWORD" || { echo 'Existing FillMeNow key password is not configured.'; exit 1; }
+      - name: Set up pinned Android build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
+          echo "$JAVA_HOME_17_X64/bin" >> "$GITHUB_PATH"
+          curl --fail --location --silent --show-error https://services.gradle.org/distributions/gradle-9.6.0-bin.zip -o /tmp/gradle.zip
+          EXPECTED="$(curl --fail --location --silent --show-error https://services.gradle.org/distributions/gradle-9.6.0-bin.zip.sha256)"
+          echo "$EXPECTED  /tmp/gradle.zip" | sha256sum -c -
+          unzip -q /tmp/gradle.zip -d /tmp
+          echo /tmp/gradle-9.6.0/bin >> "$GITHUB_PATH"
+          SDK_ROOT="${ANDROID_HOME:?Android SDK missing}"
+          "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0' 'emulator' 'system-images;android-35;google_apis;x86_64'
+      - name: Compile APK and AAB and run Android lint
+        run: gradle -p android --no-daemon :app:assembleRelease :app:bundleRelease :app:lintRelease --stacktrace
+      - name: Sign using the existing private key and verify domain trust
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.FILLMENOW_UPLOAD_KEYSTORE_BASE64 }}
+          KEY_PASSWORD: ${{ secrets.FILLMENOW_UPLOAD_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          KEYSTORE="$RUNNER_TEMP/fillmenow-upload.jks"
+          trap 'rm -f "$KEYSTORE"' EXIT
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE"
+          mkdir -p native-package
+          BUILD_TOOLS="$ANDROID_HOME/build-tools/36.0.0"
+          "$BUILD_TOOLS/zipalign" -f -p 4 android/app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/aligned.apk"
+          "$BUILD_TOOLS/apksigner" sign --ks "$KEYSTORE" --ks-key-alias fillmenow-upload --ks-pass env:KEY_PASSWORD --key-pass env:KEY_PASSWORD --out native-package/FillMeNow-1.1.0-GPS-test.apk "$RUNNER_TEMP/aligned.apk"
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs native-package/FillMeNow-1.1.0-GPS-test.apk > native-package/signature.txt
+          cp android/app/build/outputs/bundle/release/app-release.aab native-package/FillMeNow-1.1.0-GPS-test.aab
+          jarsigner -keystore "$KEYSTORE" -storepass:env KEY_PASSWORD -keypass:env KEY_PASSWORD -sigalg SHA256withRSA -digestalg SHA-256 native-package/FillMeNow-1.1.0-GPS-test.aab fillmenow-upload
+          jarsigner -verify native-package/FillMeNow-1.1.0-GPS-test.aab
+          python3 - <<'PY'
+          import json,re,urllib.request
+          from pathlib import Path
+          signature=Path('native-package/signature.txt').read_text()
+          digest=re.search(r'Signer #1 certificate SHA-256 digest: ([0-9a-fA-F]+)',signature).group(1).upper()
+          fingerprint=':'.join(digest[i:i+2] for i in range(0,len(digest),2))
+          for host in ['fillmenow-au.vercel.app','fillmenow.vercel.app']:
+              req=urllib.request.Request('https://'+host+'/.well-known/assetlinks.json',headers={'Cache-Control':'no-cache'})
+              data=json.load(urllib.request.urlopen(req,timeout=20))
+              assert any(x.get('target',{}).get('package_name')=='au.com.fillmenow.app' and fingerprint in x['target']['sha256_cert_fingerprints'] for x in data), 'Signing certificate not trusted at '+host
+          Path('native-package/build.json').write_text(json.dumps({'source':__import__('os').environ['GITHUB_SHA'],'package':'au.com.fillmenow.app','versionCode':2,'certificateSHA256':fingerprint,'domainTrust':'verified','storePublished':False},indent=2))
+          print('APK signature and both existing Digital Asset Links match. No new website trust or private key published.')
+          PY
+          (cd native-package && sha256sum *.apk *.aab > SHA256SUMS.txt)
+      - name: Boot isolated Android emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo chmod 666 /dev/kvm
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n fmn-gps -k 'system-images;android-35;google_apis;x86_64' --force
+          "$ANDROID_HOME/emulator/emulator" -avd fmn-gps -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect > /tmp/fmn-emulator.log 2>&1 &
+          adb wait-for-device
+          for i in $(seq 1 90); do test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1 && break; sleep 2; done
+          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1
+          adb shell input keyevent 82
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+          adb install native-package/FillMeNow-1.1.0-GPS-test.apk
+      - name: Test the installed signed package
+        run: python3 tools/android-native-smoke.py
+      - name: Package device test instructions
+        run: |
+          cp android/NATIVE_GPS_TEST.md native-package/READ-ME-FIRST.md
+          cp native-qa/report.json native-package/emulator-report.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: FillMeNow-native-GPS-signed-package
+          path: native-package/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Preserve diagnostic evidence
+        if: always()
+        run: |
+          mkdir -p native-qa
+          cp android/app/build/reports/lint-results-release.* native-qa/ 2>/dev/null || true
+          cp /tmp/fmn-emulator.log native-qa/ 2>/dev/null || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: FillMeNow-native-GPS-QA
+          path: native-qa/
+          retention-days: 7
+      - name: Stop disposable emulator
+        if: always()
+        run: adb emu kill || true

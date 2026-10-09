@@ -1,5 +1,5 @@
-const CACHE = 'fillmenow-web-v18-nearby-20261009';
-const SHELL = ["/nearby-core.js", "/nearby-ui.js", "/nearby.css", "/data/station-information.json", "/startup-support.css", "/support-chat.js", "/interaction-polish.css", "/", "/manifest.webmanifest", "/icon.svg", "/icons/icon-192.png", "/icons/icon-512.png", "/assets/maplibre.js", "/assets/maplibre.css", "/privacy", "/terms", "/assets/brands/bp.svg", "/assets/brands/shell.svg", "/assets/brands/caltex.png", "/assets/brands/ampol.svg", "/assets/brands/united.png", "/assets/brands/metro.png", "/assets/brands/liberty.svg", "/assets/brands/puma.svg", "/assets/brands/reddy.png", "/assets/brands/seven.svg"];
+const CACHE = 'fillmenow-web-v19-journey-20261009';
+const SHELL = ["/journey.js", "/journey.css", "/nearby-core.js", "/nearby-ui.js", "/nearby.css", "/data/station-information.json", "/startup-support.css", "/support-chat.js", "/interaction-polish.css", "/", "/manifest.webmanifest", "/icon.svg", "/icons/icon-192.png", "/icons/icon-512.png", "/assets/maplibre.js", "/assets/maplibre.css", "/privacy", "/terms", "/assets/brands/bp.svg", "/assets/brands/shell.svg", "/assets/brands/caltex.png", "/assets/brands/ampol.svg", "/assets/brands/united.png", "/assets/brands/metro.png", "/assets/brands/liberty.svg", "/assets/brands/puma.svg", "/assets/brands/reddy.png", "/assets/brands/seven.svg"];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
 });

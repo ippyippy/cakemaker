@@ -2373,6 +2373,7 @@ body #page-explore .price-marker.station-pin .brand-word{font-size:9px!important
 <link rel="stylesheet" href="/startup-support.css">
 <script defer src="/support-chat.js"></script>
 <link rel="stylesheet" href="/nearby.css">
+<link rel="stylesheet" href="/journey.css">
 </head>
 <body data-page="explore">
 <div class="fmn-onboard" id="fmnOnboard" aria-modal="true" role="dialog" aria-labelledby="fmnOnboardTitle">
@@ -2568,6 +2569,7 @@ body #page-explore .price-marker.station-pin .brand-word{font-size:9px!important
 
 <script src="/nearby-core.js"></script>
 <script src="/nearby-ui.js"></script>
+<script src="/journey.js"></script>
 <script src="/assets/maplibre.js"></script>
 <script>
 (function(){
@@ -2713,7 +2715,9 @@ var individualPins=[],pinLeaders=null;
 // FMN_EXACT_PINS_APPLIED_20261008
 // Replaces only the existing map-marker implementation, inside its existing closure.
 var stationPinById=new Map(),userLocationPin=null;
-function markerProfile(){return {detailed:!!map&&map.getZoom()>=12,width:60,height:66}}
+// FMN_JOURNEY_FIX_20261009: show prices at neighbourhood zoom; hysteresis prevents threshold flashing.
+var markerPricesVisible=false;
+function markerProfile(){if(map){var z=map.getZoom();if(z>=10)markerPricesVisible=true;else if(z<9.5)markerPricesVisible=false}return {detailed:!!map&&markerPricesVisible,width:60,height:66}}
 function clearMapMarkers(){
  if(Array.isArray(mapLayer))mapLayer.forEach(function(m){try{m.remove()}catch(e){}});
  mapLayer=[];individualPins=[];stationPinById.clear();userLocationPin=null;
@@ -2801,16 +2805,18 @@ function installPopupFooters(){
  var exit=$("exitDrive");if(exit){exit.classList.add("bottom-page-back");exit.innerHTML='‹ <span>Back</span>'}
 }
 
-function renderMap(){
+var lastSearchCameraKey="";
+function renderMap(forceCamera){
  syncMapStationCount();
  ensureMap();
  if(!map)return;
- if(!loc)return;
+ if(!loc){lastSearchCameraKey="";return}
  var r=+prefs.radius||20,w=window.innerWidth||1440;
  var targetZoom=r<=5?13.4:r<=10?12.6:r<=20?11.4:r<=30?10.8:r<=50?9.7:8.6;
  if(w<=900)targetZoom-=.2;
  if(w<=600)targetZoom-=.15;
- map.jumpTo({center:[+loc.lng,+loc.lat],zoom:targetZoom});
+ var cameraKey=[+loc.lat,+loc.lng,r].join("|");
+ if(forceCamera===true||cameraKey!==lastSearchCameraKey){lastSearchCameraKey=cameraKey;map.jumpTo({center:[+loc.lng,+loc.lat],zoom:targetZoom})}
  renderMapMarkers();
  setTimeout(function(){try{map.resize()}catch(e){}},80)
 }
@@ -2824,7 +2830,7 @@ function refreshViewportMap(){
 window.addEventListener("resize",refreshViewportMap);
 document.addEventListener("transitionend",function(e){if(e.target.id==="mobileSheet")scheduleMapLabelLayout()});
 window.addEventListener("orientationchange",refreshViewportMap);
-function openArea(){refreshCoverage();$("stateSelect").value=prefs.state;syncFuel();$("locationSearch").value="";$("suggestions").innerHTML="";$("areaModal").classList.add("open");document.body.classList.add("modal-open");loadRegions()} function closeArea(){$("areaModal").classList.remove("open");if(!$("stationModal").classList.contains("open")&&!$("driveMode").classList.contains("open"))document.body.classList.remove("modal-open")}
+function openArea(){refreshCoverage();$("stateSelect").value=prefs.state;syncFuel();$("locationSearch").value="";$("suggestions").innerHTML="";$("areaModal").classList.add("open");document.body.classList.add("modal-open");loadRegions();if(window.FMNJourney)FMNJourney.onOpen()} function closeArea(){if(window.FMNJourney)FMNJourney.onClose();$("areaModal").classList.remove("open");if(!$("stationModal").classList.contains("open")&&!$("driveMode").classList.contains("open"))document.body.classList.remove("modal-open")}
 // FMN_RECOVERY_20261008: stale area requests cannot change the selected state.
 var regionRequest=0,regionAbort=null,searchAbort=null;
 function locationFeedback(box,message,retry){
@@ -2866,20 +2872,7 @@ function launchStateForCoords(lat,lng){
  if(lat>=-43.75&&lat<=-39.20&&lng>=143.70&&lng<=148.60)return "TAS";
  return null;
 }
-function gps(){
- if(!navigator.geolocation){toast("Location is unavailable. Search a suburb or postcode instead.");openArea();return}
- var buttons=[$("gpsBtn"),$("areaGps")].filter(Boolean),labels=buttons.map(function(b){return b.textContent});
- buttons.forEach(function(b){b.disabled=true;b.style.opacity=".65"});if($("areaGps"))$("areaGps").textContent="Finding location…";
- navigator.geolocation.getCurrentPosition(function(p){
-  buttons.forEach(function(b,i){b.disabled=false;b.style.opacity="";b.textContent=labels[i]});
-  var lat=p.coords.latitude,lng=p.coords.longitude,detected=launchStateForCoords(lat,lng);
-  if(!detected){toast("Choose your state manually for this location");openArea();return}
-  if(detected==="QLD"&&!qldReady){toast("Queensland is connecting. Please choose an available state.");openArea();return}prefs.state=detected;syncFuel();persist();setLoc({lat:lat,lng:lng,label:"Current location · "+detected})
- },function(){
-  buttons.forEach(function(b,i){b.disabled=false;b.style.opacity="";b.textContent=labels[i]});
-  toast("Location permission was not granted");
- },{enableHighAccuracy:true,timeout:12000,maximumAge:300000})
-}
+function gps(){if(window.FMNJourney)FMNJourney.requestLocation();else{toast("Location controls could not load. Search a suburb instead.");openArea()}}
 async function search(q){
  var query=String(q||"").trim(),request=++searchRequest,state=prefs.state,box=$("suggestions");
  if(searchAbort)searchAbort.abort();
@@ -2899,7 +2892,7 @@ async function search(q){
  finally{clearTimeout(timeout);if(request===searchRequest)box.removeAttribute("aria-busy")}
 }
 function find(id){return ranked.find(function(x){return String(x.station_id)===String(id)})||rows.find(function(x){return String(x.station_id)===String(id)})||saved.find(function(x){return String(x.station_id)===String(id)})}
-function navigate(x){if(!x)return;var proceed=function(){window.open("https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(x.latitude+","+x.longitude),"_blank","noopener")};if(window.FMNNearbyUI)FMNNearbyUI.navigate(x,proceed);else if(!["truck","heavy"].includes(prefs.vehicle)||confirm("Truck dimensions are not checked by these standard directions. Continue?"))proceed()}
+function navigate(x){if(!x)return;var next=function(url){var proceed=function(){window.open(url,"_blank","noopener")};if(window.FMNNearbyUI)FMNNearbyUI.navigate(x,proceed);else if(!["truck","heavy"].includes(prefs.vehicle)||confirm("Truck dimensions are not checked by these standard directions. Continue?"))proceed()};if(window.FMNJourney)FMNJourney.chooseNavigation(x,next);else next("https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(x.latitude+","+x.longitude))}
 function stationMetricsHtml(x,d){var m=[],sid=x.station_id===undefined||x.station_id===null?"":String(x.station_id);m.push(["Fuel",x.fuel_type||prefs.fuel,""]);if(Number.isFinite(+x.price))m.push(["Price",(+x.price).toFixed(1)+"¢/L","price-mini"]);if(Number.isFinite(d))m.push(["Distance",d.toFixed(1)+" km",""]);if(Number.isFinite(+x.effective))m.push(["After travel",(+x.effective).toFixed(1)+"¢/L",""]);if(Number.isFinite(+x.saving)&&x.saving>0)m.push(["Est. saving",cash(x.saving),""]);return m.map(function(z){var isPrice=z[0]==="Price",extra=z[2]||"";return '<div class="station-mini '+extra+'"><span>'+esc(z[0])+'</span><b class="'+(isPrice?"fuel-price":"")+'">'+(isPrice?brandMark(x.brand,x.station_name):"")+esc(z[1])+'</b></div>'}).join("")}
 function openStation(id){
  var x=find(id);if(!x)return;current=x;highlightStationPin(id);
@@ -3089,12 +3082,12 @@ if($("optionsFuel"))$("optionsFuel").onchange=function(){prefs.fuel=this.value;p
 if($("optionsRadius"))$("optionsRadius").onchange=function(){prefs.radius=+this.value;if(window.FMNNearbyUI)FMNNearbyUI.radiusChanged(prefs.radius);persist();$("radiusSelect").value=String(prefs.radius);load().then(renderOptions);syncSub()};
 if($("optionsVehicle"))$("optionsVehicle").onclick=function(){showPage("more");openDrawer("vehicle")};
 if($("addStationBtn"))$("addStationBtn").onclick=function(){showPage("explore")};
-if($("recenterBtn"))$("recenterBtn").onclick=function(){if(loc)renderMap();else openArea()};
+if($("recenterBtn"))$("recenterBtn").onclick=function(){if(loc)renderMap(true);else openArea()};
 if($("mapSettingsBtn"))$("mapSettingsBtn").onclick=function(){showPage("more")};
 Array.from(document.querySelectorAll(".freq-row")).forEach(function(r){r.onclick=function(){prefs.frequency=this.dataset.freq;$("alertFrequency").value=prefs.frequency;persist();alertUI()}});
 Array.from(document.querySelectorAll("[data-open-panel]")).forEach(function(b){b.onclick=function(){openDrawer(this.dataset.openPanel)}});
 Array.from(document.querySelectorAll("[data-info]")).forEach(function(b){b.onclick=function(){showInfo(this.dataset.info)}});if($("termsBtn"))$("termsBtn").onclick=function(){window.open("/terms.html","_blank","noopener")};
-if($("drawerBack"))$("drawerBack").onclick=closeDrawer;[$("areaControl"),$("topArea"),$("mapArea")].filter(Boolean).forEach(function(b){b.onclick=openArea});[$("gpsBtn"),$("areaGps")].filter(Boolean).forEach(function(b){b.onclick=gps});$("areaClose").onclick=closeArea;$("areaModal").onclick=function(e){if(e.target===e.currentTarget)closeArea()};$("stateSelect").onchange=function(){prefs.state=this.value;prefs.fuel=FUELS[prefs.state][0];loc=null;searchRequest++;clearTimeout(searchTimer);if(searchAbort)searchAbort.abort();$("locationSearch").value="";$("suggestions").innerHTML="";$("suggestions").removeAttribute("aria-busy");persist();syncFuel();loadRegions();load()};$("modalFuel").onchange=function(){prefs.fuel=this.value;persist();syncFuel()};$("fuelSelect").onchange=function(){prefs.fuel=this.value;if($("mobileFuelSelect"))$("mobileFuelSelect").value=prefs.fuel;persist();load();syncSub()};$("radiusSelect").onchange=function(){prefs.radius=+this.value;if(window.FMNNearbyUI)FMNNearbyUI.radiusChanged(prefs.radius);if($("mobileRadiusSelect"))$("mobileRadiusSelect").value=String(prefs.radius);persist();load();syncSub()};if($("mobileFuelSelect"))$("mobileFuelSelect").onchange=function(){prefs.fuel=this.value;$("fuelSelect").value=prefs.fuel;persist();load();syncSub()};if($("mobileRadiusSelect"))$("mobileRadiusSelect").onchange=function(){prefs.radius=+this.value;if(window.FMNNearbyUI)FMNNearbyUI.radiusChanged(prefs.radius);$("radiusSelect").value=String(prefs.radius);persist();load();syncSub()};if($("mobileVehicleBtn"))$("mobileVehicleBtn").onclick=function(){showPage("more");setTimeout(function(){var el=document.querySelector(".preset.active");if(el)el.scrollIntoView({block:"center",behavior:"smooth"})},80)};$("refreshBtn").onclick=load;$("locationSearch").oninput=function(){clearTimeout(searchTimer);searchRequest++;if(searchAbort)searchAbort.abort();$("suggestions").innerHTML="";$("suggestions").removeAttribute("aria-busy");var q=this.value;searchTimer=setTimeout(function(){search(q)},220)};installSheetGestures();$("stationClose").onclick=closeStation;$("stationModal").onclick=function(e){if(e.target===e.currentTarget)closeStation()};$("stationGo").onclick=function(){navigate(current)};$("stationSave").onclick=toggleSaved;if($("desktopDetailBack"))$("desktopDetailBack").onclick=closeStation;if($("desktopStationGo"))$("desktopStationGo").onclick=function(){navigate(current)};if($("desktopStationSave"))$("desktopStationSave").onclick=toggleSaved;Array.from(document.querySelectorAll(".preset")).forEach(function(b){b.onclick=function(){setPreset(b.dataset.preset)}});$("saveVehicle").onclick=function(){if(window.FMNNearbyUI)FMNNearbyUI.saveVehicle()};if($("alertRadius"))$("alertRadius").oninput=function(){$("alertRadiusValue").textContent=this.value+" km"};$("alertFrequency").onchange=function(){prefs.frequency=this.value;persist();alertUI()};$("pushSwitch").onclick=togglePush;$("saveAlerts").onclick=saveAlerts;$("testAlert").onclick=testAlert;$("installBtn").onclick=install;$("resetBtn").onclick=async function(){if(!confirm("Reset FillMeNow on this device?"))return;try{var r=await navigator.serviceWorker.getRegistration("/"),s=r?await r.pushManager.getSubscription():null;if(s){var ep=s.endpoint;try{await fetch(api({api:"unsubscribe"}),{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({endpoint:ep})})}catch(e){}try{await s.unsubscribe()}catch(e){}}}finally{["fdPrefs","fdLoc","fdSaved","fmnOnboarded","fmnDashPosition","fmnSupportDevice","fmnSupportReceipt","fmnNearbyFilters","fmnOfferEligibility"].forEach(function(k){localStorage.removeItem(k)});location.reload()}};$("exitDrive").onclick=function(){$("driveMode").classList.remove("open");document.body.classList.remove("modal-open")}}
+if($("drawerBack"))$("drawerBack").onclick=closeDrawer;[$("areaControl"),$("topArea"),$("mapArea")].filter(Boolean).forEach(function(b){b.onclick=openArea});[$("gpsBtn"),$("areaGps")].filter(Boolean).forEach(function(b){b.onclick=gps});$("areaClose").onclick=closeArea;$("areaModal").onclick=function(e){if(e.target===e.currentTarget)closeArea()};$("stateSelect").onchange=function(){prefs.state=this.value;prefs.fuel=FUELS[prefs.state][0];loc=null;searchRequest++;clearTimeout(searchTimer);if(searchAbort)searchAbort.abort();$("locationSearch").value="";$("suggestions").innerHTML="";$("suggestions").removeAttribute("aria-busy");persist();syncFuel();loadRegions();load()};$("modalFuel").onchange=function(){prefs.fuel=this.value;persist();syncFuel()};$("fuelSelect").onchange=function(){prefs.fuel=this.value;if($("mobileFuelSelect"))$("mobileFuelSelect").value=prefs.fuel;persist();load();syncSub()};$("radiusSelect").onchange=function(){prefs.radius=+this.value;if(window.FMNNearbyUI)FMNNearbyUI.radiusChanged(prefs.radius);if($("mobileRadiusSelect"))$("mobileRadiusSelect").value=String(prefs.radius);persist();load();syncSub()};if($("mobileFuelSelect"))$("mobileFuelSelect").onchange=function(){prefs.fuel=this.value;$("fuelSelect").value=prefs.fuel;persist();load();syncSub()};if($("mobileRadiusSelect"))$("mobileRadiusSelect").onchange=function(){prefs.radius=+this.value;if(window.FMNNearbyUI)FMNNearbyUI.radiusChanged(prefs.radius);$("radiusSelect").value=String(prefs.radius);persist();load();syncSub()};if($("mobileVehicleBtn"))$("mobileVehicleBtn").onclick=function(){showPage("more");setTimeout(function(){var el=document.querySelector(".preset.active");if(el)el.scrollIntoView({block:"center",behavior:"smooth"})},80)};$("refreshBtn").onclick=load;$("locationSearch").oninput=function(){clearTimeout(searchTimer);searchRequest++;if(searchAbort)searchAbort.abort();$("suggestions").innerHTML="";$("suggestions").removeAttribute("aria-busy");var q=this.value;searchTimer=setTimeout(function(){search(q)},220)};installSheetGestures();$("stationClose").onclick=closeStation;$("stationModal").onclick=function(e){if(e.target===e.currentTarget)closeStation()};$("stationGo").onclick=function(){navigate(current)};$("stationSave").onclick=toggleSaved;if($("desktopDetailBack"))$("desktopDetailBack").onclick=closeStation;if($("desktopStationGo"))$("desktopStationGo").onclick=function(){navigate(current)};if($("desktopStationSave"))$("desktopStationSave").onclick=toggleSaved;Array.from(document.querySelectorAll(".preset")).forEach(function(b){b.onclick=function(){setPreset(b.dataset.preset)}});$("saveVehicle").onclick=function(){if(window.FMNNearbyUI)FMNNearbyUI.saveVehicle()};if($("alertRadius"))$("alertRadius").oninput=function(){$("alertRadiusValue").textContent=this.value+" km"};$("alertFrequency").onchange=function(){prefs.frequency=this.value;persist();alertUI()};$("pushSwitch").onclick=togglePush;$("saveAlerts").onclick=saveAlerts;$("testAlert").onclick=testAlert;$("installBtn").onclick=install;$("resetBtn").onclick=async function(){if(!confirm("Reset FillMeNow on this device?"))return;try{var r=await navigator.serviceWorker.getRegistration("/"),s=r?await r.pushManager.getSubscription():null;if(s){var ep=s.endpoint;try{await fetch(api({api:"unsubscribe"}),{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({endpoint:ep})})}catch(e){}try{await s.unsubscribe()}catch(e){}}}finally{["fdPrefs","fdLoc","fdSaved","fmnOnboarded","fmnDashPosition","fmnSupportDevice","fmnSupportReceipt","fmnNearbyFilters","fmnOfferEligibility","fmnJourney"].forEach(function(k){localStorage.removeItem(k)});location.reload()}};$("exitDrive").onclick=function(){$("driveMode").classList.remove("open");document.body.classList.remove("modal-open")}}
 document.addEventListener("keydown",function(e){
  if(e.key!=="Escape")return;
  if($("settingsDrawer").classList.contains("open")){closeDrawer();return}
@@ -3196,6 +3189,14 @@ function installSheetGestures(){
 window.FD={refresh:load,area:openArea,open:openStation,nav:function(id){navigate(find(id))},navSaved:function(id){navigate(saved.find(function(x){return String(x.station_id)===String(id)}))},options:function(){showPage("options")},drive:function(){if(!summary){toast("Choose an area first");return}$("driveMode").classList.add("open");document.body.classList.add("modal-open");renderDrive()},sheet:function(){setSheetCollapsed(!$("mobileSheet").classList.contains("is-collapsed"))}};
 
 // FMN_NEARBY_STAGE1_20261009: one bridge to the existing app state and controls.
+window.FMNJourneyApp={api:api,getPrefs:function(){return prefs},getLocation:function(){return loc},openArea:openArea,toast:toast,
+ acceptGPS:function(point,selectedState){
+  var detected=selectedState&&STATES.indexOf(selectedState)>=0?selectedState:launchStateForCoords(point.lat,point.lng);
+  if(!detected)return {ok:false,reason:"border"};
+  if(detected==="QLD"&&!qldReady)return {ok:false,reason:"coverage"};
+  prefs.state=detected;syncFuel();setLoc({lat:point.lat,lng:point.lng,label:"Current location · "+detected});return {ok:true,state:detected};
+ }
+};
 window.FMNNearbyApp={getPrefs:function(){return prefs},renderOptions:renderOptions,toast:toast,
  applyRadius:function(radius){if(radius>prefs.radius){prefs.radius=radius;persist();syncFuel();load()}},
  setVehicle:function(kind){setPreset(kind);render();},
@@ -3222,7 +3223,7 @@ function fmnOnboarding(){
  }
  function done(){
   try{localStorage.setItem("fmnOnboarded","1")}catch(e){}document.documentElement.dataset.firstRun="false";o.classList.remove("open");blocked.forEach(function(el){el.inert=false});if(loc)load();else{render();openArea();}
-  if($("areaModal").classList.contains("open"))$("locationSearch").focus();
+  if($("areaModal").classList.contains("open")){$("areaTitle")?.focus({preventScroll:true});}
   else{document.body.classList.remove("modal-open");$("topArea").focus()}
  }
  buttons[0].onclick=function(){if(page<2){page++;update()}else done()};

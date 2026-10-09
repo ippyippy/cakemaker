@@ -1,0 +1,69 @@
+name: FillMeNow map prices truck and location QA
+on:
+  push:
+    branches: [fix/map-prices-truck-location-20261009]
+    paths:
+      - 'web/**'
+      - 'tools/journey-*'
+      - '.github/workflows/journey-fix-qa.yml'
+permissions:
+  contents: read
+concurrency:
+  group: fillmenow-journey-screenshot-qa
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Apply existing app fixes without production credentials
+        run: |
+          python3 tools/journey-fix-apply.py
+          python3 tools/journey-lifecycle-finish.py
+          node --check web/journey.js
+          git diff --check
+      - name: Install isolated pinned browser test tools
+        run: |
+          npm install --prefix /tmp/fmn-qa --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          /tmp/fmn-qa/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Verify screenshot fixes and preserve existing app behaviour
+        env:
+          NODE_PATH: /tmp/fmn-qa/node_modules
+        run: |
+          node tools/journey-fix-test.cjs
+          node tools/nearby-test.cjs
+          node tools/nearby-browser-test.cjs
+          node tools/saved-stations-test.cjs
+          node tools/dash-position-test.cjs
+          node tools/exact-map-test.cjs
+          node tools/support-release-test.cjs
+          node tools/backend-route-test.cjs
+          git diff --check
+      - name: Commit only the passing app source to this candidate branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/fix/map-prices-truck-location-20261009
+          git add web/index.html web/journey.js web/journey.css web/nearby-ui.js web/privacy.html web/sw.js tools/nearby-browser-test.cjs tools/journey-fix-test.cjs
+          if ! git diff --cached --quiet; then
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Apply verified map prices, discoverable truck stations and location recovery'
+            git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/fix/map-prices-truck-location-20261009
+          fi
+          git rev-parse HEAD > qa-results/journey/review-commit.txt
+      - name: Save reviewed public source and test evidence
+        if: always()
+        run: |
+          mkdir -p qa-results/journey
+          cp -r web qa-results/journey/reviewed-web
+          cp tools/journey-*.py tools/journey-fix-test.cjs qa-results/journey/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fillmenow-journey-screenshot-evidence
+          path: qa-results/
+          retention-days: 7

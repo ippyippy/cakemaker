@@ -1,0 +1,35 @@
+/* Screenshot regression fixes. MapLibre retains ownership of marker position. */
+body #page-explore .price-marker.station-pin.pin-detail{width:60px!important;min-width:60px!important;max-width:60px!important;height:66px!important;min-height:66px!important;max-height:66px!important;padding:3px!important;gap:2px!important}
+body #page-explore .price-marker.station-pin.pin-detail .brand-mark{width:46px!important;min-width:46px!important;height:32px!important;flex:0 0 32px!important}
+body #page-explore .price-marker.station-pin.pin-detail .pin-price{display:block!important;white-space:nowrap!important;font-size:15px!important;line-height:20px!important;letter-spacing:-.35px!important}
+body #page-explore .price-marker.station-pin.pin-detail .pin-price small{font-size:11px!important}
+body #areaModal{top:var(--journey-vtop,0px)!important;bottom:auto!important;height:var(--journey-vh,100dvh)!important;box-sizing:border-box!important;padding:12px 0 0!important}
+body #areaModal .modal.popup-shell{max-height:calc(var(--journey-vh,100dvh) - 12px)!important;min-height:0!important;padding:0!important;overflow:hidden!important}
+body #areaModal .location-heading{flex:0 0 auto;padding:16px 18px 12px;background:white;border-bottom:1px solid #dfe6df}
+body #areaModal .location-heading h2{font-size:22px!important;line-height:1.2!important;margin:0!important;letter-spacing:-.4px!important}
+body #areaModal .popup-scroll{min-height:0!important;flex:1 1 auto!important;padding:16px 18px!important;overflow-y:auto!important;scroll-padding:16px}
+body #areaModal .popup-footer{flex:0 0 auto!important}
+body #areaModal .journey-fields{border-bottom:1px solid #dfe6df;padding-bottom:14px;margin:0 0 16px}
+body #areaModal .journey-fields .field{display:flex;flex-direction:column;gap:7px;font-size:14px;line-height:1.4;font-weight:700;margin-bottom:12px}
+body #areaModal .journey-fields input,body #areaModal .journey-fields select{width:100%;max-width:100%;box-sizing:border-box;font-size:16px!important;min-height:46px}
+body #areaModal .journey-fields p,body #areaModal #locationStatus{font-size:14px!important;line-height:1.5!important;margin:10px 0!important;overflow-wrap:anywhere}
+body #areaModal .journey-fields [hidden],body #areaModal .location-recovery [hidden]{display:none!important}
+body #areaModal .location-recovery{margin:8px 0 14px}
+body #areaModal #locationStatus{padding:10px 12px;background:#eef5ef;border:1px solid #ccdace;border-radius:10px;color:#294231}
+body #areaModal #locationStatus[data-state="error"]{background:#fff5de;border-color:#d7be7a;color:#514018}
+body .journey-result{display:block;min-height:44px;width:100%;margin:7px 0;padding:10px 12px;text-align:left;border:1px solid #ccdace;border-radius:10px;background:#fff;color:#173e29;font-size:14px;font-weight:700;line-height:1.4;overflow-wrap:anywhere;cursor:pointer}
+body .journey-dialog{padding:0;border:1px solid #d6ded8;border-radius:18px;width:min(520px,calc(100% - 24px));max-height:calc(100dvh - 24px);color:#14231a;background:white}
+body .journey-dialog[open]{display:flex;flex-direction:column}
+body .journey-dialog::backdrop{background:#10201780;backdrop-filter:blur(3px)}
+body .journey-dialog header{flex:0 0 auto;padding:18px;border-bottom:1px solid #dfe6df}
+body .journey-dialog h2{font-size:22px;margin:0;line-height:1.25}
+body .journey-scroll{flex:1 1 auto;min-height:0;overflow:auto;padding:16px 18px;overscroll-behavior:contain}
+body .journey-scroll p{font-size:15px;line-height:1.55;margin:0 0 12px;overflow-wrap:anywhere}
+body .journey-dialog footer{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;border-top:1px solid #dfe6df;background:#fff}
+body .journey-dialog footer button{min-height:46px;padding:10px 14px;font-size:15px;font-weight:800;line-height:1.35;border:1px solid #b8cabe;border-radius:12px;background:#fff;color:#193f2a;cursor:pointer}
+body .journey-dialog footer button:last-child:not(:first-child){background:#087332;color:#fff}
+body #truckAccessNotice{font-size:14px;line-height:1.5;color:#425447;background:#f0f5f0;padding:10px 12px;border-radius:10px;margin:0 0 12px}
+body #page-options #optionsRadius:focus:not(:focus-visible){outline:none!important}
+@media(max-height:500px){body #areaModal .location-heading{padding:10px 16px}body #areaModal .location-heading h2{font-size:19px!important}body .journey-dialog header{padding:10px 16px}}
+
+body #optionsWiden[hidden]{display:none!important}

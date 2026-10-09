@@ -1,40 +1,56 @@
-/* Foreground-only, user-started location following. No history or background tracking. */
+/* User-started, foreground location following. Accuracy is reported by the device, not invented. */
 (function(root,factory){'use strict';const core=factory();if(typeof module==='object'&&module.exports){module.exports=core;return;}root.FMNLiveCore=core;
-let app,map,watch=null,lastPoint=null,lastTimestamp=0,generation=0,deadline=null,wanted=false,locked=false,refreshAt=0,refreshPoint=null;
-const $=id=>document.getElementById(id);
-function say(text){const node=$('followStatus');if(node){node.textContent=text;node.hidden=!text;}}
-function buttons(){const c=$('recenterBtn'),t=$('followToggle');if(c){c.setAttribute('aria-label',locked?'Centre on my live location':'Find and centre my location');c.classList.toggle('following',locked);c.title='Find and centre on your actual GPS location';}if(t){t.textContent=locked?'Stop following':wanted?'Resume follow':'Follow me';t.setAttribute('aria-pressed',String(locked));}}
-function release(){generation++;clearTimeout(deadline);deadline=null;if(watch!==null){navigator.geolocation?.clearWatch(watch);watch=null;}}
-function stop(message){release();wanted=false;locked=false;buttons();if(message!==undefined)say(message);}
-function pause(){if(!wanted)return;locked=false;buttons();say('Map browsing · tap My location to resume following.');}
-function fail(code){stop();const messages={1:'Location blocked. Allow this app in your browser and phone settings.',2:'GPS unavailable. Turn on phone Location, or use Search.',3:'GPS timed out. Tap My location to try again.'};say(messages[code]||messages[2]);}
-function receive(position,id){if(id!==generation||!wanted||document.hidden)return;const p=core.validPosition(position,Date.now(),lastTimestamp);if(!p){say('Waiting for a fresh, usable GPS position…');return;}lastTimestamp=p.timestamp;lastPoint=p;clearTimeout(deadline);deadline=null;
- const state=app.locationState(p);if(!state){stop('GPS is near a state boundary or outside supported coverage. Use Search to confirm the state.');return;}
- const now=Date.now(),reload=!refreshPoint||now-refreshAt>180000||(now-refreshAt>=20000&&core.distance(refreshPoint,p)>=.5);
+let app,map,watch=null,watchdog=null,lastPoint=null,lastTimestamp=0,generation=0,wanted=false,locked=false,quality='off',refreshAt=0,refreshPoint=null,streetZoom=false,layoutTimer=null,observer=null;
+const $=id=>document.getElementById(id),fresh=()=>!!lastPoint&&Date.now()-lastPoint.timestamp<=core.MAX_AGE_MS;
+function say(text){const node=$('followStatus');if(node){node.textContent=text;node.hidden=!text;node.dataset.quality=quality;}}
+function buttons(){const live=wanted&&locked&&quality==='precise'&&fresh(),c=$('recenterBtn'),t=$('followToggle');if(c){c.setAttribute('aria-label','Find and centre my precise location');c.classList.toggle('following',live);}if(t){t.textContent=wanted?(locked?(live?'Stop following':'Stop GPS'):'Resume follow'):'Follow me';t.setAttribute('aria-pressed',String(live));}if($('preciseGpsHelp'))$('preciseGpsHelp').hidden=!wanted&&quality==='off';
+ const pin=document.querySelector('.user-map-marker');if(pin){pin.classList.toggle('gps-last-known',wanted&&quality!=='precise');pin.setAttribute('aria-label',wanted?(quality==='precise'?'Current precise GPS position':'Last known position — precise GPS unavailable'):'Your selected location');}}
+function release(){generation++;clearInterval(watchdog);watchdog=null;clearTimeout(layoutTimer);layoutTimer=null;if(watch!==null){navigator.geolocation?.clearWatch(watch);watch=null;}}
+function stop(message){release();wanted=false;locked=false;quality='off';buttons();if(message!==undefined)say(message);}
+function pause(){if(!wanted)return;locked=false;buttons();say('Map browsing · GPS still updating. Tap My location to resume.');}
+function offset(){const m=app?.getMap(),box=m?.getContainer()?.getBoundingClientRect();if(!box||!box.height)return [0,0];let top=box.top+12,bottom=box.bottom-12;const sheet=$('mobileSheet');if(sheet&&!sheet.classList.contains('collapsed')&&getComputedStyle(sheet).display!=='none'){const r=sheet.getBoundingClientRect();if(r.height>50&&r.top>box.top&&r.top<bottom)bottom=r.top-16;}
+ const banner=$('followStatus');if(banner&&!banner.hidden){const r=banner.getBoundingClientRect();top=Math.min(Math.max(top,r.bottom+12),box.top+box.height*.3);}
+ const y=bottom-top>=60?(top+bottom)/2:box.top+box.height*.3;return [0,Math.max(-box.height*.4,Math.min(box.height*.3,y-box.top-box.height/2))];}
+function centre(p){if(!wanted||!locked||quality!=='precise'||!fresh())return;map=app?.getMap();if(!map)return;const options={center:[p.lng,p.lat],offset:offset(),duration:220};if(streetZoom){options.zoom=Math.max(map.getZoom(),15);streetZoom=false;}map.easeTo(options);}
+function layout(){clearTimeout(layoutTimer);layoutTimer=setTimeout(()=>{if(lastPoint)centre(lastPoint);},280);}
+function waiting(kind,message){quality=kind;buttons();say(message);}
+function fail(code){if(code===1){release();wanted=false;locked=false;quality='denied';buttons();say('Location blocked. Allow precise location for this app/browser. Tap Precise GPS help.');return;}
+ // A temporary timeout is not a reason to cancel the watch: GPS may acquire or recover later.
+ waiting(lastPoint?'stale':'waiting',code===3?'Waiting for a fresh precise GPS fix. Still trying; check Precise GPS help.':'GPS temporarily unavailable. Still trying while the app is open.');}
+function receive(position,id){if(id!==generation||!wanted||document.hidden)return;const result=core.assessPosition(position,Date.now(),lastTimestamp);
+ if(result.kind!=='precise'){if(result.kind==='coarse')waiting('coarse','Precise GPS needed — phone reports ±'+Math.round(result.accuracy)+' m. Not following this approximate position.');else if(result.kind==='stale')waiting('stale','GPS position is out of date. Waiting for a fresh fix.');else waiting('waiting','Waiting for a valid precise GPS fix.');return;}
+ const p=result.position,state=app.locationState(p);if(!state){stop('GPS is outside automatic coverage or near a state boundary. Use Search to confirm your area.');return;}
+ lastTimestamp=p.timestamp;lastPoint=p;quality='precise';const now=Date.now(),reload=!refreshPoint||now-refreshAt>180000||(now-refreshAt>=20000&&core.distance(refreshPoint,p)>=.5);
  if(reload){refreshAt=now;refreshPoint=p;}
- app.applyLiveLocation(p,state,{reload,follow:locked});buttons();say(p.accuracy>250?'Approximate GPS (±'+Math.round(p.accuracy)+' m). Check your position.':locked?'Following your live location':'Location updating · map browsing');
+ // Shared price/marker state is updated first. Camera follows the uncovered part of the map.
+ app.applyLiveLocation(p,state,{reload,follow:false});buttons();say(locked?'Following · reported accuracy ±'+Math.round(p.accuracy)+' m':'GPS updating · map browsing');centre(p);
 }
-function start(){if(!app)return;app.prepareLiveMap();map=app.getMap();if(!root.isSecureContext||!navigator.geolocation?.watchPosition){fail(2);return;}const policy=document.permissionsPolicy||document.featurePolicy;if(policy?.allowsFeature&&!policy.allowsFeature('geolocation')){fail(1);return;}
- if(watch!==null&&wanted){locked=true;buttons();if(lastPoint)app.centreLive(lastPoint);say('Following your live location');return;}
- release();wanted=true;locked=true;const id=generation;buttons();say('Finding your location… allow the location request.');
- deadline=setTimeout(()=>{if(id===generation)fail(3);},15000);
- try{watch=navigator.geolocation.watchPosition(p=>receive(p,id),e=>{if(id===generation)fail(e?.code);},{enableHighAccuracy:true,timeout:10000,maximumAge:5000});if(id!==generation&&watch!==null){navigator.geolocation.clearWatch(watch);watch=null;}}catch{fail(2);}
+function start(){if(!app)return;window.FMNJourney?.cancelLocation();app.prepareLiveMap();bindMap();if(!root.isSecureContext||!navigator.geolocation?.watchPosition){quality='unsupported';say('Precise location needs HTTPS and a supported browser. Use Search or open FillMeNow directly.');buttons();return;}const policy=document.permissionsPolicy||document.featurePolicy;if(policy?.allowsFeature&&!policy.allowsFeature('geolocation')){fail(1);return;}
+ if(watch!==null&&wanted){locked=true;buttons();if(quality==='precise'&&fresh()){say('Following · reported accuracy ±'+Math.round(lastPoint.accuracy)+' m');centre(lastPoint);}else say('Still waiting for precise GPS. Tap Precise GPS help or Stop GPS.');return;}
+ release();wanted=true;locked=true;quality='waiting';lastTimestamp=0;lastPoint=null;refreshPoint=null;streetZoom=true;const id=generation;buttons();say('Waiting for precise GPS. Choose Precise and Allow if asked.');
+ watchdog=setInterval(()=>{if(id!==generation||!wanted)return;if(lastPoint&&!fresh()&&quality==='precise')waiting('stale','GPS has not updated recently. Last known position only; waiting for a fresh fix.');},2000);
+ try{const assigned=navigator.geolocation.watchPosition(p=>receive(p,id),e=>{if(id===generation&&wanted)fail(e?.code);},{enableHighAccuracy:true,timeout:20000,maximumAge:0});if(id!==generation||!wanted)navigator.geolocation.clearWatch(assigned);else watch=assigned;}catch{release();wanted=false;locked=false;quality='unavailable';buttons();say('Could not start precise GPS. Check phone/browser location settings.');}
 }
-function bindMap(){const m=app.getMap();if(!m||m===map&&m.__fmnFollowBound)return;map=m;map.__fmnFollowBound=true;map.on('dragstart',e=>{if(e.originalEvent)pause();});map.on('rotatestart',e=>{if(e.originalEvent)pause();});}
+function help(){if($('preciseGpsDialog'))return;const opener=document.activeElement,d=document.createElement('dialog');d.id='preciseGpsDialog';d.className='journey-dialog';d.setAttribute('aria-labelledby','preciseGpsTitle');d.innerHTML='<header><h2 id="preciseGpsTitle">Enable precise live location</h2></header><div class="journey-scroll"><p>Set this up while parked. A kilometre-wide position is not suitable for following your vehicle.</p><p><strong>Android:</strong> Open Settings → Apps → Chrome (or the browser hosting FillMeNow) → Permissions → Location. Choose Allow while using the app and turn on Use precise location, where available. Turn on the phone’s main Location switch too.</p><p><strong>Site permission:</strong> In the same browser and FillMeNow address, open site information → Permissions → Location. Allow location and select Precise if that choice is shown. An installed web app may use its browser’s permission.</p><p><strong>iPhone:</strong> Settings → Privacy &amp; Security → Location Services → your browser → While Using the App, with Precise Location on.</p><p>Try outdoors with a clear view of the sky. Battery saving, buildings and the device’s location provider can affect reception. FillMeNow cannot grant permission or improve a coordinate the device has already blurred.</p><p>Follow uses fresh positions with device-reported accuracy of 50 m or better. That threshold is not a guarantee of road, lane or truck clearance. Following works while this app is open and visible; it stops when the app is hidden.</p></div><footer><button type="button" id="preciseGpsBack">← Back</button><button type="button" id="preciseGpsRetry">Retry precise GPS</button></footer>';
+ d.querySelector('#preciseGpsBack').onclick=()=>d.close();d.querySelector('#preciseGpsRetry').onclick=()=>{d.close();stop();start();};d.addEventListener('keydown',e=>{if(e.key==='Escape')e.stopPropagation();});d.addEventListener('close',()=>{d.remove();opener?.isConnected&&opener.focus({preventScroll:true});});document.body.append(d);d.showModal();}
+function bindMap(){const m=app?.getMap();if(!m||m.__fmnPreciseFollowBound)return;map=m;map.__fmnPreciseFollowBound=true;map.on('dragstart',e=>{if(e.originalEvent)pause();});map.on('rotatestart',e=>{if(e.originalEvent)pause();});map.on('resize',layout);}
 function init(){app=root.FMNJourneyApp;if(!app)return;const c=$('recenterBtn'),holder=c?.parentElement;if(!holder)return;
  c.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2"/></svg><span>My location</span>';c.onclick=start;
- const t=document.createElement('button');t.id='followToggle';t.type='button';t.onclick=()=>{if(locked)stop('Following stopped.');else start();};c.after(t);
- const s=document.createElement('p');s.id='followStatus';s.role='status';s.hidden=true;holder.after(s);buttons();bindMap();
- document.addEventListener('fmn:map-ready',bindMap);document.addEventListener('fmn:manual-area',()=>stop('Following stopped for your selected area.'));
- document.addEventListener('visibilitychange',()=>{if(document.hidden&&wanted){release();wanted=false;locked=false;buttons();say('Following paused while the app was hidden. Tap Follow me to resume.');}});
- root.addEventListener('pagehide',()=>stop());
+ const t=document.createElement('button');t.id='followToggle';t.type='button';t.onclick=()=>{if(wanted&&locked)stop('Following stopped.');else start();};c.after(t);
+ const h=document.createElement('button');h.id='preciseGpsHelp';h.type='button';h.textContent='Precise GPS help';h.onclick=help;h.hidden=true;t.after(h);
+ const s=document.createElement('p');s.id='followStatus';s.role='status';s.hidden=true;holder.after(s);buttons();bindMap();document.addEventListener('fmn:map-ready',bindMap);
+ document.addEventListener('fmn:manual-area',()=>{if(wanted)stop('Following stopped for your selected area.');});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden&&wanted)stop('Following paused while the app was hidden. Tap Follow me to resume.');});root.addEventListener('pagehide',()=>stop());root.addEventListener('resize',layout);root.visualViewport?.addEventListener('resize',layout);
+ if($('mobileSheet')){observer=new MutationObserver(layout);observer.observe($('mobileSheet'),{attributes:true,attributeFilter:['class']});}
 }
-root.FMNLiveLocation={start,stop,pause,getState:()=>({watching:watch!==null,wanted,locked})};
+root.FMNLiveLocation={start,stop,pause,help,getState:()=>({watching:watch!==null,wanted,locked,quality,following:wanted&&locked&&quality==='precise'&&fresh()})};
 document.addEventListener('DOMContentLoaded',()=>setTimeout(init,0));
 })(typeof window!=='undefined'?window:globalThis,function(){'use strict';
+const MAX_ACCURACY_M=50,MAX_AGE_MS=10000;
 function distance(a,b){const r=Math.PI/180,dl=(b.lat-a.lat)*r,dn=(b.lng-a.lng)*r,q=Math.sin(dl/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dn/2)**2;return 6371*2*Math.atan2(Math.sqrt(q),Math.sqrt(Math.max(0,1-q)));}
-function validPosition(p,now,last=0){const c=p?.coords,t=Number(p?.timestamp);if(!c||!Number.isFinite(c.latitude)||!Number.isFinite(c.longitude)||Math.abs(c.latitude)>90||Math.abs(c.longitude)>180||!Number.isFinite(c.accuracy)||c.accuracy<0||c.accuracy>5000||!Number.isFinite(t)||t<last||now-t>60000||t-now>5000)return null;return {lat:c.latitude,lng:c.longitude,accuracy:c.accuracy,timestamp:t};}
+function assessPosition(p,now,last=0){const c=p?.coords,t=Number(p?.timestamp);if(!c||!Number.isFinite(c.latitude)||!Number.isFinite(c.longitude)||Math.abs(c.latitude)>90||Math.abs(c.longitude)>180||!Number.isFinite(c.accuracy)||c.accuracy<0||!Number.isFinite(t)||t-now>5000)return {kind:'invalid'};if(t<last||now-t>MAX_AGE_MS)return {kind:'stale'};if(c.accuracy>MAX_ACCURACY_M)return {kind:'coarse',accuracy:c.accuracy};return {kind:'precise',position:{lat:c.latitude,lng:c.longitude,accuracy:c.accuracy,timestamp:t}};}
+function validPosition(p,now,last=0){return assessPosition(p,now,last).position||null;}
 function bearing(a,b){const r=Math.PI/180,dl=(b.lng-a.lng)*r;return Math.atan2(Math.sin(dl)*Math.cos(b.lat*r),Math.cos(a.lat*r)*Math.sin(b.lat*r)-Math.sin(a.lat*r)*Math.cos(b.lat*r)*Math.cos(dl));}
 function toward(row,origin,destination){if(!origin||!destination||destination.manual||![origin.lat,origin.lng,destination.lat,destination.lng,row.latitude,row.longitude].every(v=>v!=null&&Number.isFinite(+v)))return null;const station={lat:+row.latitude,lng:+row.longitude},trip=distance(origin,destination),d=distance(origin,station);if(trip<.25)return false;let angle=bearing(origin,station)-bearing(origin,destination);angle=Math.atan2(Math.sin(angle),Math.cos(angle));return Math.abs(angle)<=Math.PI*5/12&&d*Math.cos(angle)<=trip&&distance(station,destination)<trip;}
-return Object.freeze({distance,validPosition,toward});
+return Object.freeze({MAX_ACCURACY_M,MAX_AGE_MS,distance,assessPosition,validPosition,toward});
 });

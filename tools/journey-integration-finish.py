@@ -1,0 +1,11 @@
+from pathlib import Path
+p=Path('web/nearby-ui.js');s=p.read_text()
+s=s.replace('function destinationChanged(){','function destinationChanged(event){').replace("if(read('fmnDestinationFilterKey',null)!==key){","if(event?.detail?.changed===true||read('fmnDestinationFilterKey',null)!==key){")
+p.write_text(s)
+p=Path('web/journey.js');s=p.read_text()
+s=s.replace("function renderDestination(){document.dispatchEvent(new Event('fmn:destination'));","function renderDestination(changed=false){document.dispatchEvent(new CustomEvent('fmn:destination',{detail:{changed}}));")
+s=s.replace('const saved=writeDestination();renderDestination();','const saved=writeDestination();renderDestination(true);')
+s=s.replace("cancelLocation();app.closeArea();root.FMNLiveLocation?.start();","cancelLocation();app.closeArea();app.openExplore();root.FMNLiveLocation?.start();")
+p.write_text(s)
+p=Path('web/index.html');s=p.read_text().replace('openArea:openArea,closeArea:closeArea,toast:toast,','openArea:openArea,closeArea:closeArea,openExplore:function(){showPage("explore")},toast:toast,');p.write_text(s)
+print('Explicit destination selection activates filtering; opening a dialog respects All directions.')

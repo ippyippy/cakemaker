@@ -45,6 +45,16 @@ if 'FMN_LOCATION_PROMPT_20261009' not in s:
 #locationEnableDialog :focus-visible{outline:3px solid #b98500;outline-offset:3px}
 @media(max-height:500px){#locationEnableDialog{max-height:calc(100dvh - 12px)}#locationEnableDialog header{padding:10px 16px}#locationEnableDialog .journey-scroll{padding:10px 16px}}
 '''
- p.write_text(s)
+if 'FMN_LOCATION_LANDSCAPE_CONTROLS' not in s:
+ s+='''\n/* FMN_LOCATION_LANDSCAPE_CONTROLS: keep cancellation above the expanded sheet. */
+@media(max-height:500px) and (min-width:600px){
+ body[data-page=explore] #page-explore .map-tools-bottom{top:4px!important;right:10px!important;flex-direction:row!important;align-items:center!important;gap:6px!important}
+ body[data-page=explore] #page-explore .map-tools-bottom #recenterBtn{width:44px!important;min-width:44px!important;height:42px!important;padding:6px!important;gap:0!important}
+ body[data-page=explore] #page-explore .map-tools-bottom #recenterBtn span{display:none!important}
+ body[data-page=explore] #page-explore .map-tools-bottom #followToggle,body[data-page=explore] #page-explore .map-tools-bottom #preciseGpsHelp{height:42px!important;min-height:42px!important;width:auto!important;min-width:78px!important;max-width:none!important;padding:6px 10px!important;font-size:13px!important;line-height:18px!important;white-space:nowrap!important}
+ body[data-page=explore] #page-explore .map-tools-bottom #mapSettingsBtn{height:42px!important;width:42px!important}
+}
+'''
+p.write_text(s)
 p=Path('web/sw.js');s=p.read_text();lines=s.splitlines();lines[0]="const CACHE = 'fillmenow-web-v25-location-prompt-20261009';";p.write_text('\n'.join(lines)+'\n')
 print('Location prompt connected to existing GPS; numerical accuracy, preferences, prices and station data unchanged.')

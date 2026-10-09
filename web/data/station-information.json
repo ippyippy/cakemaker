@@ -4,13 +4,13 @@
   "access": [],
   "facilities": [
     {
-      "state": "QLD",
       "station_id": "61402436",
+      "state": "QLD",
       "kind": "operator_listed_truck_stop",
-      "name": "Shell Reddy Express Nudgee",
       "source_url": "https://find.shell.com/au/fuel/10111406-shell-reddy-express-nudgee/en_AU",
-      "checked_at": "2026-10-09T01:00:00Z",
-      "note": "Shell lists Truck Friendly, high-flow diesel, truck parking and truck AdBlue at 1097 Nudgee Road. No numeric canopy or entrance clearance published."
+      "checked_at": "2026-10-09T02:20:00Z",
+      "note": "Shell lists truck-friendly access, high-flow diesel, truck AdBlue and truck parking at 1097 Nudgee Road. No numerical fuel-bay clearance is published.",
+      "phone": "+61737417815"
     },
     {
       "state": "QLD",
@@ -31,6 +31,60 @@
       "checked_at": "2026-10-09T01:00:00Z",
       "source_published_at": "2024-09-16",
       "note": "Operator identifies the diesel stop at 6 Radar Street and heavy-transport driveways. Wash-bay dimensions are not fuel-bay clearance. No numeric fuel-bay clearance published."
+    },
+    {
+      "station_id": "61401537",
+      "state": "QLD",
+      "kind": "operator_listed_truck_stop",
+      "source_url": "https://find.shell.com/au/fuel/10111462-shell-reddy-express-virginia/en_AU",
+      "checked_at": "2026-10-09T02:20:00Z",
+      "note": "Shell lists Truck Friendly and High Flow Diesel at 1890 Sandgate Road, Virginia. Fuel-bay height is not published; confirm your full vehicle with the operator.",
+      "phone": "+61736388708"
+    },
+    {
+      "station_id": "61401428",
+      "state": "QLD",
+      "kind": "operator_listed_truck_stop",
+      "source_url": "https://find.shell.com/au/fuel/10111437-shell-reddy-express-rocklea/en_AU",
+      "checked_at": "2026-10-09T02:20:00Z",
+      "note": "Shell lists truck-friendly access, high-flow diesel, truck AdBlue, parking and showers at 1728 Ipswich Road. Confirm your full vehicle; no numerical canopy height is published.",
+      "phone": "+61735684612"
+    },
+    {
+      "station_id": "61401753",
+      "state": "QLD",
+      "kind": "operator_listed_truck_stop",
+      "source_url": "https://find.shell.com/au/fuel/10111290-shell-reddy-express-goodna/en_AU",
+      "checked_at": "2026-10-09T02:20:00Z",
+      "note": "Shell lists truck-friendly access, high-flow diesel and truck parking at 2 Railway Terrace, Goodna. Numerical fuel-bay clearance is not published.",
+      "phone": "+61734476814"
+    },
+    {
+      "station_id": "61401929",
+      "state": "QLD",
+      "kind": "operator_listed_truck_stop",
+      "source_url": "https://find.shell.com/au/fuel/10111169-shell-reddy-express-belmont-qld/en_AU",
+      "checked_at": "2026-10-09T02:20:00Z",
+      "note": "Shell lists Truck Friendly and High Flow Diesel at 11 London Road, Belmont. Numerical fuel-bay clearance is not published.",
+      "phone": "+61735693633"
+    },
+    {
+      "station_id": "61477774",
+      "state": "QLD",
+      "kind": "operator_listed_truck_stop",
+      "source_url": "https://find.shell.com/au/fuel/10111234-shell-reddy-express-coomera-truck-stop/en_AU",
+      "checked_at": "2026-10-09T02:20:00Z",
+      "note": "Shell lists truck-friendly access, high-flow diesel, truck AdBlue, parking and showers at 487 Old Pacific Highway. Numerical fuel-bay clearance is not published.",
+      "phone": "+61728105615"
+    },
+    {
+      "station_id": "61478190",
+      "state": "QLD",
+      "kind": "operator_listed_truck_stop",
+      "source_url": "https://find.shell.com/au/fuel/10120869-shell-reddy-express-currumbin/en_AU",
+      "checked_at": "2026-10-09T02:20:00Z",
+      "note": "Shell lists truck-friendly access, high-flow diesel, truck AdBlue, parking and showers at 1 Stewart Road, Currumbin Waters. Numerical fuel-bay clearance is not published.",
+      "phone": "+61756016754"
     }
   ]
 }

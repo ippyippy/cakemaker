@@ -1,0 +1,65 @@
+name: FillMeNow green value and truck actions QA
+on:
+  push:
+    branches: [feature/value-highlights-truck-actions-20261009]
+    paths: ['web/**', 'tools/value-truck-*', '.github/workflows/value-truck-qa.yml']
+permissions:
+  contents: read
+concurrency:
+  group: fillmenow-value-truck-qa
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Apply scoped UI changes without production credentials
+        run: |
+          python3 tools/value-truck-polish.py
+          node --check web/nearby-ui.js
+          git diff --check
+      - name: Install isolated pinned browser tools
+        run: |
+          npm install --prefix /tmp/fmn-qa --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          /tmp/fmn-qa/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Verify value styling, truck actions and existing features
+        env:
+          NODE_PATH: /tmp/fmn-qa/node_modules
+        run: |
+          node tools/value-truck-test.cjs
+          node tools/shared-search-test.cjs
+          node tools/nearby-test.cjs
+          node tools/saved-stations-test.cjs
+          node tools/dash-position-test.cjs
+          node tools/exact-map-test.cjs
+          node tools/support-release-test.cjs
+          node tools/backend-route-test.cjs
+          git diff --check
+      - name: Commit only passing source to this reviewed branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/feature/value-highlights-truck-actions-20261009
+          git add web/index.html web/nearby-ui.js web/nearby.css web/sw.js
+          if ! git diff --cached --quiet; then
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Apply tested green value highlights and actionable truck access checks'
+            git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/feature/value-highlights-truck-actions-20261009
+          fi
+          git rev-parse HEAD > qa-results/value-truck/review-commit.txt
+      - name: Preserve public-source evidence without private profiles
+        if: always()
+        run: |
+          mkdir -p qa-results/value-truck
+          cp -r web qa-results/value-truck/reviewed-web
+          cp tools/value-truck-* qa-results/value-truck/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fillmenow-value-truck-evidence
+          path: qa-results/
+          retention-days: 7

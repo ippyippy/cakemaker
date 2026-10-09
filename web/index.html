@@ -2580,8 +2580,51 @@ body #page-explore .price-marker.station-pin .brand-word{font-size:9px!important
 var STATES=["NSW","WA","TAS","QLD"],FUELS={QLD:["Diesel","U91","E10","U95","U98"],NSW:["Diesel","U91","E10","U95","U98"],WA:["Diesel","U91","U95","U98"],TAS:["Diesel","U91","E10","U95","U98"]};
 var PRESETS={car:{tank:65,economy:9},ute:{tank:120,economy:14},truck:{tank:600,economy:35},heavy:{tank:1000,economy:45}};
 var prefs=Object.assign({state:"NSW",fuel:"Diesel",radius:20,tank:65,economy:9,vehicle:"car",alertRadius:20,frequency:"daily",time1:"06:00",time2:"15:30",threshold:""},read("fdPrefs",{}));
+var preferenceBaseline=JSON.parse(JSON.stringify(prefs));
 var loc=read("fdLoc",null),saved=read("fdSaved",[]),rows=[],ranked=[],summary=null,current=null,map=null,mapFailed=false,mapLayer=[],installPrompt=null,searchTimer=null,priceRequest=0,priceAbort=null,priceStatus="idle",searchRequest=0;
-function $(x){return document.getElementById(x)} function read(k,d){try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}} function persist(){localStorage.setItem("fdPrefs",JSON.stringify(prefs));if(loc)localStorage.setItem("fdLoc",JSON.stringify(loc));else localStorage.removeItem("fdLoc");localStorage.setItem("fdSaved",JSON.stringify(saved))}
+function $(x){return document.getElementById(x)} function read(k,d){try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}} function persist(){
+ prefs=mergeStoredPreferences(preferenceBaseline,prefs,read("fdPrefs",{}));
+ localStorage.setItem("fdPrefs",JSON.stringify(prefs));preferenceBaseline=JSON.parse(JSON.stringify(prefs));
+ if(loc)localStorage.setItem("fdLoc",JSON.stringify(loc));else localStorage.removeItem("fdLoc");
+ localStorage.setItem("fdSaved",JSON.stringify(saved));
+}
+
+// FMN_SESSION_PREFS_20261009: same-origin sessions must not restore stale vehicle defaults.
+// FMN_PREF_MERGE_BEGIN
+function mergeStoredPreferences(base,local,remote){
+ function record(v){return !!v&&typeof v==='object'&&!Array.isArray(v)}
+ function own(o,k){return Object.prototype.hasOwnProperty.call(o,k)}
+ function same(a,b){return JSON.stringify(a)===JSON.stringify(b)}
+ function safe(k){return k!=='__proto__'&&k!=='constructor'&&k!=='prototype'}
+ base=record(base)?base:{};local=record(local)?local:{};remote=record(remote)?remote:{};
+ var result={},keys=new Set(Object.keys(local).concat(Object.keys(remote)));
+ keys.forEach(function(k){if(!safe(k))return;var changed=!same(local[k],base[k]);var value=changed||!own(remote,k)?local[k]:remote[k];if(value!==undefined)result[k]=value});
+ // Vehicle kind and physical/fill settings are one unit, avoiding mixed car/truck profiles.
+ var vehicleKeys=['vehicle','tank','economy','truck'];
+ if(vehicleKeys.some(function(k){return !same(local[k],base[k])}))vehicleKeys.forEach(function(k){if(own(local,k))result[k]=local[k];else delete result[k]});
+ // Retain other remembered vehicles when this session changes just one profile.
+ var profiles={},bp=record(base.vehicleProfiles)?base.vehicleProfiles:{},lp=record(local.vehicleProfiles)?local.vehicleProfiles:{},rp=record(remote.vehicleProfiles)?remote.vehicleProfiles:{};
+ new Set(Object.keys(lp).concat(Object.keys(rp))).forEach(function(k){if(!safe(k))return;var value=!same(lp[k],bp[k])||!own(rp,k)?lp[k]:rp[k];if(value!==undefined)profiles[k]=value});
+ if(Object.keys(profiles).length)result.vehicleProfiles=profiles;
+ return JSON.parse(JSON.stringify(result));
+}
+// FMN_PREF_MERGE_END
+function syncStoredPreferences(){
+ if(!window.FMNNearbyApp)return;
+ var latest=read('fdPrefs',null);if(!latest||typeof latest!=='object'||Array.isArray(latest))return;
+ var next=mergeStoredPreferences(preferenceBaseline,prefs,latest);
+ if(JSON.stringify(next)===JSON.stringify(prefs))return;
+ var sourceChanged=next.state!==prefs.state||next.fuel!==prefs.fuel||next.radius!==prefs.radius;
+ prefs=next;preferenceBaseline=JSON.parse(JSON.stringify(prefs));
+ syncFuel();render();
+ if(document.body.dataset.page==='options')renderOptions();
+ if(document.body.dataset.page==='more')moreUI();
+ if(sourceChanged&&loc)load();
+}
+window.addEventListener('storage',function(e){if(e.key==='fdPrefs')syncStoredPreferences()});
+window.addEventListener('focus',syncStoredPreferences);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)syncStoredPreferences()});
+
 const BACKEND="https://psytztnkeeymavzmpomv.supabase.co/functions/v1/fueldrop";
 function api(q){var u=new URL(BACKEND);u.search="";Object.keys(q).forEach(function(k){if(q[k]!==undefined&&q[k]!==null&&q[k]!=="")u.searchParams.set(k,q[k])});return u.toString()}
 function dkm(a,b,c,d){var R=6371,r=Math.PI/180,da=(c-a)*r,dl=(d-b)*r,x=Math.sin(da/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin(dl/2)**2;return 2*R*Math.asin(Math.sqrt(x))}

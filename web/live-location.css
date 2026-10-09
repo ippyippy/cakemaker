@@ -7,3 +7,11 @@ body #page-explore .map-tools-bottom #followToggle{width:auto!important;min-widt
 body #page-explore .map-tools-bottom #followToggle[aria-pressed=true]{background:#087532!important;color:white!important}
 body #followStatus{position:absolute;top:12px;left:10px;right:104px;z-index:999;max-width:280px;margin:0;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.97);box-shadow:0 2px 9px #0002;color:#294537;font-size:13px;line-height:1.4;pointer-events:none}
 #followStatus[hidden]{display:none!important}.vehicle-save-status{font-size:14px;line-height:1.45;color:#176435;padding:8px 0}.vehicle-save-status[data-error=true]{color:#8b2b13}.nearby-truck-summary{padding:12px;border:1px solid #c9d8cc;border-radius:12px;font-size:14px;line-height:1.5;background:#f7faf7;margin:12px 0}.nearby-facility{display:block;font-size:14px;line-height:1.4;color:#28583a;margin-top:6px}.nearby-facility a{font-size:14px;text-decoration:underline}.nearby-destination-field{margin:12px 0}.nearby-direction-help{font-size:14px;line-height:1.45;color:#506356}
+
+/* FMN_PRECISE_FOLLOW_20261009: coarse fixes never receive the live green state. */
+body #page-explore #preciseGpsHelp{min-width:78px!important;max-width:118px!important;min-height:42px!important;height:auto!important;padding:7px 9px!important;border-radius:12px!important;font-size:13px!important;line-height:18px!important;background:#fff!important;color:#173a27!important}
+body #page-explore #preciseGpsHelp[hidden]{display:none!important}
+body #followStatus[data-quality=coarse],body #followStatus[data-quality=stale],body #followStatus[data-quality=denied]{border:1px solid #a76517;background:#fff8e9;color:#67400f}
+body .user-map-marker.gps-last-known{filter:grayscale(1);opacity:.55}
+#preciseGpsDialog footer button{min-height:44px;font-size:15px}
+#preciseGpsDialog .journey-scroll{font-size:16px;line-height:1.5}

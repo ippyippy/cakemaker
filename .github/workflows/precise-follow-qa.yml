@@ -1,0 +1,66 @@
+name: FillMeNow precise driving location QA
+on:
+  push:
+    branches: [fix/precise-driving-location-20261009]
+    paths: ['web/**', 'tools/precise-follow-*', '.github/workflows/precise-follow-qa.yml']
+permissions:
+  contents: read
+concurrency:
+  group: fillmenow-precise-driving-location
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Apply reviewed follower changes and stronger tests
+        run: |
+          python3 tools/precise-follow-apply.py
+          python3 tools/precise-follow-stability.py
+          node --check web/live-location.js
+          node --check tools/follow-preferences-test.cjs
+          git diff --check
+      - name: Install isolated pinned browser tools
+        run: |
+          npm install --prefix /tmp/fmn-qa --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          /tmp/fmn-qa/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Verify precise driving and existing app features
+        env:
+          NODE_PATH: /tmp/fmn-qa/node_modules
+        run: |
+          node tools/follow-preferences-test.cjs
+          node tools/nearby-test.cjs
+          node tools/saved-stations-test.cjs
+          node tools/dash-position-test.cjs
+          node tools/exact-map-test.cjs
+          node tools/support-release-test.cjs
+          node tools/backend-route-test.cjs
+          git diff --check
+      - name: Commit only passing source to reviewed branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/fix/precise-driving-location-20261009
+          git add web/live-location.js web/live-location.css web/sw.js tools/follow-preferences-test.cjs
+          if ! git diff --cached --quiet; then
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Apply tested precise GPS recovery and visible driving follow'
+            git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/fix/precise-driving-location-20261009
+          fi
+          git rev-parse HEAD > qa-results/follow/review-commit.txt
+      - name: Preserve public QA evidence, without actual user locations
+        if: always()
+        run: |
+          mkdir -p qa-results/follow
+          cp -r web qa-results/follow/reviewed-web
+          cp tools/follow-preferences-test.cjs tools/precise-follow-*.py qa-results/follow/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fillmenow-precise-driving-evidence
+          path: qa-results/
+          retention-days: 7

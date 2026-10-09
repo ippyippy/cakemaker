@@ -22,7 +22,6 @@ def click_id(r,suffix):
                 adb('shell','input','tap',str((b[0]+b[2])//2),str((b[1]+b[3])//2));return True
     return False
 def reveal(suffix,direction='down'):
-    # Real swipes within the native ScrollView; never tap hidden/off-screen controls.
     for _ in range(6):
         r=tree()
         for n in r.iter('node'):
@@ -35,12 +34,15 @@ def reveal(suffix,direction='down'):
     raise AssertionError('Native control not reachable: '+suffix)
 def launch(fresh=True):
     if fresh:adb('shell','am','force-stop',PKG)
-    adb('shell','am','start','-W','-a','android.intent.action.VIEW','-d','fillmenow://location-settings','-n',PKG+'/.LocationSetupActivity')
+    result=adb('shell','am','start','-W','-f','0x14000000','-a','android.intent.action.VIEW','-d','fillmenow://location-settings','-n',PKG+'/.LocationSetupActivity')
+    with (OUT/'launch-results.txt').open('a') as f:f.write(result+'\n')
+    assert 'Error:' not in result,result
+    time.sleep(1)
 def is_system_location_notice(r):
     return 'com.google.android.gms' in ET.tostring(r,encoding='unicode') and 'No location access' in text(r)
 try:
     adb('shell','cmd','location','set-location-enabled','true')
-    adb('shell','pm','clear',PKG) # Disposable emulator package only.
+    adb('shell','pm','clear',PKG)
     launch();initial=screen('01-native-setup');assert 'Set up precise location' in text(initial) and 'not yet allowed' in text(initial),text(initial)
     assert click_id(initial,'native_location_enable');prompt=screen('02-android-permission')
     assert 'location' in text(prompt).lower();assert click_id(prompt,'permission_deny_button'),text(prompt)
@@ -57,11 +59,11 @@ try:
     launch();allowed=screen('05-native-granted');assert 'Precise location permission is allowed' in text(allowed),text(allowed)
     assert click_id(allowed,'native_location_permissions');settings=screen('06-app-settings');assert 'FillMeNow' in text(settings) and 'Location' in text(settings),text(settings)
     checks.append('Native app-permission action opens FillMeNow Android settings with Location listed')
+    adb('shell','input','keyevent','4');returned=screen('06b-return-from-settings')
+    assert 'Set up precise location' in text(returned),text(returned)
     adb('shell','am','force-stop',PKG)
     adb('shell','cmd','location','set-location-enabled','false');time.sleep(1);launch()
     off=screen('07-location-off')
-    # Google Play services may independently warn when the test toggles system Location off.
-    # Close only that known system notice, leave Location off, then test the app's own action.
     if is_system_location_notice(off):
         assert click_id(off,'android:id/button2');launch();off=screen('07b-native-location-off')
     assert 'Phone Location is off' in text(off),text(off)
@@ -79,14 +81,16 @@ try:
     samples=re.search(r'(\d+) updates',v);assert samples and int(samples.group(1))>=2,v
     checks.append('Native fused provider receives multiple fresh simulated movement updates')
     adb('shell','input','keyevent','3');time.sleep(1)
-    # Resume the existing activity rather than restarting the process, testing onPause cleanup.
     launch(fresh=False);stopped=reveal('native_location_test');screen('11-foreground-return')
     assert 'Test native GPS for 30 seconds' in text(stopped),text(stopped)
     checks.append('Foreground exit stops the diagnostic; returning does not restart it')
     report={'status':'PASS','checks':checks,'nativeUpdateCount':int(samples.group(1)),'physicalGPS':False,'device':'Android 35 CI emulator','mapDrivingOnPhysicalPhone':'not tested'}
 except Exception as e:
     report={'status':'FAIL','checks':checks,'error':str(e),'physicalGPS':False}
-    try:screen('failure')
+    try:
+        screen('failure')
+        logs=adb('logcat','-d','-t','500')
+        (OUT/'runtime-failure.txt').write_text('\n'.join(l for l in logs.splitlines() if any(t in l for t in ['AndroidRuntime','au.com.fillmenow','ActivityTaskManager'])))
     except Exception:pass
 finally:
     (OUT/'report.json').write_text(json.dumps(report,indent=2));print(json.dumps(report))

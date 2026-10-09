@@ -28,7 +28,8 @@ jobs:
           echo "$EXPECTED  /tmp/gradle.zip" | sha256sum -c -
           unzip -q /tmp/gradle.zip -d /tmp
           echo /tmp/gradle-9.6.0/bin >> "$GITHUB_PATH"
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0' 'emulator' 'system-images;android-35;google_apis;x86_64'
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0' 'platform-tools' 'emulator' 'system-images;android-35;google_apis;x86_64'
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
       - name: Compile APK and AAB and run Android lint
         run: gradle -p android --no-daemon :app:assembleRelease :app:bundleRelease :app:lintRelease --stacktrace
       - name: Prepare private-signing payload and emulator-only APK
@@ -47,8 +48,7 @@ jobs:
           grep -q android.permission.ACCESS_COARSE_LOCATION native-package/apk-permissions.txt
           ! grep -q android.permission.ACCESS_BACKGROUND_LOCATION native-package/apk-permissions.txt
           printf '%s\n' "$GITHUB_SHA" > native-package/source-commit.txt
-          # This short-lived key is exclusively for the disposable emulator. It is never
-          # trusted by the public website, uploaded as an artifact, or used for delivery.
+          # Disposable emulator signature only: never trusted by the website or delivered.
           export CI_KEY_PASS="$(openssl rand -hex 24)"
           keytool -genkeypair -keystore "$RUNNER_TEMP/ci-only.jks" -storepass:env CI_KEY_PASS -keypass:env CI_KEY_PASS -alias emulator-only -keyalg RSA -keysize 2048 -validity 2 -dname 'CN=FillMeNow disposable emulator test' -noprompt
           "$BUILD_TOOLS/apksigner" sign --ks "$RUNNER_TEMP/ci-only.jks" --ks-key-alias emulator-only --ks-pass env:CI_KEY_PASS --key-pass env:CI_KEY_PASS --out "$RUNNER_TEMP/ci-test.apk" native-package/FillMeNow-aligned-unsigned.apk

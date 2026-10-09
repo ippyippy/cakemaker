@@ -57,13 +57,22 @@ jobs:
           (cd native-package && sha256sum *.apk *.aab apksigner.jar > SHA256SUMS.txt)
       - name: Boot isolated Android emulator
         shell: bash
+        timeout-minutes: 6
         run: |
           set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libpulse0 libnss3 libxcomposite1 libxcursor1 libxi6 libxrandr2 libxkbfile1 libegl1 libgles2 libxcb-cursor0
           sudo chmod 666 /dev/kvm
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n fmn-gps -k 'system-images;android-35;google_apis;x86_64' --force
-          "$ANDROID_HOME/emulator/emulator" -avd fmn-gps -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect > /tmp/fmn-emulator.log 2>&1 &
-          adb wait-for-device
-          for i in $(seq 1 90); do test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1 && break; sleep 2; done
+          "$ANDROID_HOME/emulator/emulator" -avd fmn-gps -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -memory 2048 > /tmp/fmn-emulator.log 2>&1 &
+          EMULATOR_PID=$!
+          trap 'tail -n 100 /tmp/fmn-emulator.log' ERR
+          timeout 90 adb wait-for-device
+          for i in $(seq 1 90); do
+            kill -0 "$EMULATOR_PID" || { tail -n 100 /tmp/fmn-emulator.log; exit 1; }
+            test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1 && break
+            sleep 2
+          done
           test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1
           adb shell input keyevent 82
           adb shell settings put global window_animation_scale 0
@@ -71,6 +80,7 @@ jobs:
           adb shell settings put global animator_duration_scale 0
           adb install "$RUNNER_TEMP/ci-test.apk"
       - name: Test installed native release code
+        timeout-minutes: 5
         run: python3 tools/android-native-smoke.py
       - name: Package private-signing handoff
         run: |

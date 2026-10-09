@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="location_shortcut_label">Location settings</string>
     <item name="native_location_status" type="id" />
     <item name="native_location_enable" type="id" />
     <item name="native_location_permissions" type="id" />

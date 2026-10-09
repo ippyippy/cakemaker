@@ -31,6 +31,36 @@
       "checked_at": "2026-10-09T01:00:00Z",
       "source_published_at": "2024-09-16",
       "note": "Operator identifies the diesel stop at 6 Radar Street and heavy-transport driveways. Wash-bay dimensions are not fuel-bay clearance. No numeric fuel-bay clearance published."
+    },
+    {
+      "state": "QLD",
+      "station_id": "61477767",
+      "kind": "operator_listed_truck_stop",
+      "name": "Shell Reddy Express Brendale",
+      "source_url": "https://find.shell.com/au/fuel/10111160-shell-reddy-express-brendale/en_AU",
+      "checked_at": "2026-10-09T03:35:00Z",
+      "note": "Shell lists Truck Friendly, truck AdBlue and high-flow diesel at 2 Linkfield Road. Numerical canopy clearance is not published; confirm your loaded height with the operator.",
+      "phone": "+61734486837"
+    },
+    {
+      "state": "QLD",
+      "station_id": "61477703",
+      "kind": "operator_listed_truck_stop",
+      "name": "Ampol Pinkenba Diesel Stop",
+      "source_url": "https://locations.ampol.com.au/en/ampol-pinkenba-diesel-stop",
+      "checked_at": "2026-10-09T03:35:00Z",
+      "note": "Ampol identifies 19–27 Orient Avenue as National Truck Network and NatRoad Network. Numerical fuel-bay clearance is not published; this is not a dimension-match certificate.",
+      "phone": "1800240398"
+    },
+    {
+      "state": "QLD",
+      "station_id": "61401924",
+      "kind": "operator_listed_truck_stop",
+      "name": "Ampol Foodary Strathpine",
+      "source_url": "https://locations.ampol.com.au/en/ampol-foodary-strathpine",
+      "checked_at": "2026-10-09T03:35:00Z",
+      "note": "Ampol identifies 321 South Pine Road as National Truck Network and NatRoad Network. Numerical fuel-bay clearance is not published; confirm access for your vehicle.",
+      "phone": "+61732052783"
     }
   ]
 }

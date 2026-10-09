@@ -33,3 +33,9 @@ body #page-options #optionsRadius:focus:not(:focus-visible){outline:none!importa
 @media(max-height:500px){body #areaModal .location-heading{padding:10px 16px}body #areaModal .location-heading h2{font-size:19px!important}body .journey-dialog header{padding:10px 16px}}
 
 body #optionsWiden[hidden]{display:none!important}
+
+/* Shared filter state stays above markers, clear of right-hand map controls. */
+body #page-explore .map-filter-scope{position:absolute;top:12px;left:10px;right:110px;z-index:1000;max-width:310px;border:1px solid #bfd4c5;border-radius:12px;background:#fff;color:#173e27;font-size:12px;line-height:1.4;text-align:left;padding:8px 10px;box-shadow:0 2px 7px #0002;overflow-wrap:anywhere;cursor:pointer}
+body #mapFilterScope[hidden],body #truckFilterActions[hidden]{display:none!important}
+body .nearby-facility{display:block;line-height:1.5;margin-top:8px;font-size:13px}body .nearby-facility a{display:inline-block;text-decoration:underline;margin-left:4px}
+body #truckFilterActions{margin-top:0}body #truckFilterActions button{font-size:14px}

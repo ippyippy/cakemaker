@@ -15,17 +15,10 @@ html=once(html,"+'<span class=\"pin-price\">'+(+x.price).toFixed(1)+'<small>¢</
 needle='el.dataset.latitude=String(x.latitude);'
 html=once(html,needle,"var offer=!priceNeedsReview(x)&&Array.isArray(x._offers)&&x._offers.length>0;el.classList.toggle('has-verified-offer',offer);var badge=el.querySelector('.pin-value-label');if(badge){badge.hidden=!el.classList.contains('best')&&!offer;badge.textContent=el.classList.contains('best')?'★ Best value':'Offer';}el.dataset.bestValue=String(el.classList.contains('best'));\n  "+needle)
 html=once(html,'el.setAttribute("aria-label",x.station_name+', 'el.setAttribute("aria-label",(el.classList.contains("best")?"Best estimated value. ":offer?"Active offer; check conditions. ":"")+x.station_name+')
-# Current recommendation is supplied by the existing shared result set, not a second ranker.
-html=once(html,'function bestHtml(b){var diff=', 'function bestHtml(b){var diff=') if False else html
 html=once(html,"return '<div class=\"best-price fuel-price\">'+brandMark(b.brand,b.station_name)","return '<span class=\"value-badge\">★ Best value</span><div class=\"best-price fuel-price\">'+brandMark(b.brand,b.station_name)")
-# Do not let a value colour imply a truck-access approval on the recommendation card.
-html=once(html,"+esc(b.fuel_type||prefs.fuel)+'</div></div><div class=\"sheet-save\">'", "+esc(b.fuel_type||prefs.fuel)+'</div></div><div class=\"sheet-save\">'") if False else html
-html=once(html,"+esc(b.fuel_type||prefs.fuel)+'</div></div><div class=\"sheet-save\"><b>'", "+esc(b.fuel_type||prefs.fuel)+'</div></div><div class=\"sheet-save\"><b>'") if False else html
-# Scope the added note to the actual successful Best Stop branch.
 html=once(html,"+' km · est. '+b.etaMin+' min · '+esc(b.fuel_type||prefs.fuel)+'</div></div><div class=\"sheet-save\">", "+' km · est. '+b.etaMin+' min · '+esc(b.fuel_type||prefs.fuel)+'</div>'+(['truck','heavy'].includes(prefs.vehicle)?'<div class=\"best-truck-caution\">Value comparison only · truck access needs checking</div>':'')+'</div><div class=\"sheet-save\">")
 ui_path=Path('web/nearby-ui.js'); ui=ui_path.read_text()
 ui=once(ui,"row.classList.toggle('best',i===0&&!x._review&&useFilters().sort==='value');const main=row.querySelector('.option-main');", "const best=!x._review&&app.getBestId?.()===String(x.station_id);row.classList.toggle('best',best);const main=row.querySelector('.option-main');if(best)main.prepend(el('span','★ Best value','value-badge'));row.classList.toggle('has-verified-offer',!x._review&&x._offers.length>0);")
-# Access checking is separate from financial emphasis. Every truck-mode card has an evidence action.
 ui=once(ui,"if(C.truckMode(context())){main.appendChild(el('span',x._access.label,'nearby-badge '+x._access.status));", "if(C.truckMode(context())){main.appendChild(el('span',x._access.label,'nearby-badge '+x._access.status));const check=el('button','Check truck access','truck-check-button');check.type='button';check.onclick=()=>showAccessCheck(x);main.append(check);")
 ui=once(ui,"function badges(row,prefs){const parts=[];", "function badges(row,prefs){const parts=[];if(!C.priceReview(row)&&app.getBestId?.()===String(row.station_id)){parts.push('<div class=\"value-badge\">★ Best value · estimated trip cost</div>');}")
 ui=once(ui,"const facility=C.facilityFor(row,prefs,catalog);if(facility){", "const control=el('button','Check truck access','truck-check-button');control.type='button';control.dataset.stationAccess=String(row.station_id);parts.push(control.outerHTML);const facility=C.facilityFor(row,prefs,catalog);if(facility){")
@@ -55,13 +48,13 @@ function installOptionsFooter(){const back=document.getElementById('optionsBack'
 window.FMNNearbyUI={getFilters:""")
 ui=once(ui,"toolbar();syncVehicle();loadCatalogue();", "toolbar();syncVehicle();installOptionsFooter();document.addEventListener('click',e=>{const n=e.target.closest?.('[data-station-access]');if(n){e.preventDefault();const row=app.getStation?.(n.dataset.stationAccess);if(row)showAccessCheck(row);}});loadCatalogue();")
 css_path=Path('web/nearby.css'); css=css_path.read_text()+r'''
-/* FMN_VALUE_TRUCK_ACTIONS_20261009: green means financial value, never a clearance approval. */
+/* FMN_VALUE_TRUCK_ACTIONS_20261009: green means financial value, never a clearance approval. Existing marker stacking is retained. */
 body .value-badge{display:inline-flex!important;align-items:center;gap:5px;width:fit-content;max-width:100%;padding:5px 9px;margin:0 0 9px;border-radius:8px;background:#087532;color:#fff!important;font-size:13px!important;font-weight:800!important;line-height:1.3!important;letter-spacing:0;box-sizing:border-box}
 body #optionsList .option-row.best{background:#effbf3!important;border:2px solid #087532!important;box-shadow:0 2px 10px #0875321f!important}
 body #optionsList .option-row.best .option-main>strong{color:#087532!important}
-body #optionsList .option-row .nearby-offer-button,body .offer-card h3{background:#087532!important;color:#fff!important;border-color:#087532!important}
-body #page-explore .price-marker.station-pin.best{background:#effbf3!important;border-color:#087532!important;z-index:38!important}
-body #page-explore .price-marker.station-pin.best.selected{border-color:#184ece!important;z-index:40!important}
+body #optionsList .option-row.has-verified-offer .nearby-offer-button,body .offer-card h3{background:#087532!important;color:#fff!important;border-color:#087532!important}
+body #page-explore .price-marker.station-pin.best{background:#effbf3!important;border-color:#087532!important}
+body #page-explore .price-marker.station-pin.best.selected{border-color:#184ece!important}
 body #page-explore .price-marker.station-pin.best .pin-price,body #page-explore .price-marker.station-pin.has-verified-offer .pin-price{background:#087532!important;color:#fff!important;border-radius:5px;padding:0 3px!important;box-sizing:border-box}
 body #page-explore .price-marker.station-pin .pin-value-label{position:absolute!important;left:50%!important;top:-18px!important;transform:translateX(-50%)!important;background:#087532!important;color:#fff!important;border:1px solid white!important;border-radius:6px!important;font-size:11px!important;font-weight:800!important;line-height:15px!important;padding:1px 5px!important;white-space:nowrap!important;pointer-events:none!important}
 body #page-explore .pin-value-label[hidden]{display:none!important}

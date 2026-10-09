@@ -1,0 +1,73 @@
+name: FillMeNow marker hierarchy QA
+on:
+  push:
+    branches: [feature/marker-badge-hierarchy-20261010]
+    paths: ['web/marker-badges.*', 'tools/marker-badges-*', '.github/workflows/marker-badges-qa.yml']
+permissions:
+  contents: read
+concurrency:
+  group: fillmenow-marker-badges
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Apply scoped changes to existing app
+        run: |
+          python3 tools/marker-badges-apply.py
+          node --check web/marker-badges.js
+          node --check web/nearby-ui.js
+          git diff --check
+      - name: Install pinned isolated browser tools
+        run: |
+          npm install --prefix /tmp/fmn-qa --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          /tmp/fmn-qa/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Test actual location prompt without opt-out
+        env:
+          NODE_PATH: /tmp/fmn-qa/node_modules
+        run: node tools/location-prompt-test.cjs
+      - name: Test hierarchy and preserve existing app after Not now
+        env:
+          NODE_PATH: /tmp/fmn-qa/node_modules
+          NODE_OPTIONS: --require=${{ github.workspace }}/tools/location-prompt-optout-fixture.cjs
+        run: |
+          node tools/marker-badges-test.cjs
+          node tools/exact-map-test.cjs
+          node tools/value-truck-test.cjs
+          node tools/session-preferences-test.cjs
+          node tools/shared-search-test.cjs
+          node tools/saved-stations-test.cjs
+          node tools/dash-position-test.cjs
+          node tools/support-release-test.cjs
+          node tools/nearby-test.cjs
+          node tools/backend-route-test.cjs
+          git diff --check
+      - name: Commit only passing source to the candidate branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/feature/marker-badge-hierarchy-20261010
+          git add web/index.html web/nearby-ui.js web/sw.js tools/exact-map-test.cjs tools/marker-badges-test.cjs
+          if ! git diff --cached --quiet; then
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Apply tested marker hierarchy with selectable overlapping stations'
+            git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/feature/marker-badge-hierarchy-20261010
+          fi
+          git rev-parse HEAD > qa-results/marker-badges/review-commit.txt
+      - name: Preserve labelled test evidence
+        if: always()
+        run: |
+          mkdir -p qa-results/marker-badges
+          cp -r web qa-results/marker-badges/reviewed-web
+          cp tools/marker-badges-* qa-results/marker-badges/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fillmenow-marker-hierarchy-evidence
+          path: qa-results/
+          retention-days: 7

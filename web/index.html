@@ -2374,6 +2374,7 @@ body #page-explore .price-marker.station-pin .brand-word{font-size:9px!important
 <script defer src="/support-chat.js"></script>
 <link rel="stylesheet" href="/nearby.css">
 <link rel="stylesheet" href="/journey.css">
+<link rel="stylesheet" href="/marker-badges.css">
 </head>
 <body data-page="explore">
 <div class="fmn-onboard" id="fmnOnboard" aria-modal="true" role="dialog" aria-labelledby="fmnOnboardTitle">
@@ -2571,6 +2572,7 @@ body #page-explore .price-marker.station-pin .brand-word{font-size:9px!important
 <script src="/gps-permission.js" defer></script>
 <script src="/live-location.js" defer></script>
 <script src="/nearby-core.js"></script>
+<script src="/marker-badges.js"></script>
 <script src="/nearby-ui.js"></script>
 <script src="/journey.js"></script>
 <script src="/assets/maplibre.js"></script>
@@ -2699,8 +2701,8 @@ function areaText(){
  ranked=window.FMNNearbyUI?FMNNearbyUI.select(allRanked,prefs):allRanked;
  var eligible=ranked.filter(function(x){return !priceNeedsReview(x)});
  if(!eligible.length)return null;
- var best=eligible.slice().sort(function(a,b){return a.effective-b.effective||a.price-b.price||a.distance-b.distance})[0];
- summary={best:best,cheapest:eligible.slice().sort(function(a,b){return a.price-b.price||a.distance-b.distance})[0],nearest:ranked.slice().sort(function(a,b){return a.distance-b.distance})[0],count:ranked.length,median:median};return summary;
+ var best=eligible.slice().sort(function(a,b){return a.effective-b.effective||a.price-b.price||a.distance-b.distance||String(a.station_id).localeCompare(String(b.station_id))})[0];
+ summary={best:best,cheapest:eligible.slice().sort(function(a,b){return a.price-b.price||a.distance-b.distance||String(a.station_id).localeCompare(String(b.station_id))})[0],nearest:ranked.slice().sort(function(a,b){return a.distance-b.distance})[0],count:ranked.length,median:median};return summary;
 }
 function bestHtml(b){var diff=Math.max(0,summary.median-b.price);return '<span class="value-badge">★ Best value</span><div class="best-price fuel-price">'+brandMark(b.brand,b.station_name)+b.price.toFixed(1)+'<span>¢/L</span></div><h2>'+esc(b.station_name)+'</h2><div class="best-meta">'+esc(b.fuel_type||prefs.fuel)+' · '+b.distance.toFixed(1)+' km · est. '+b.etaMin+' min</div><div class="saving"><strong>Save about '+cash(b.saving)+'</strong><span>estimated on a '+Math.round(prefs.tank)+' L fill</span></div><div class="reason">'+(diff>0?diff.toFixed(1)+'¢/L below the area median.':"Best estimated trip value in your range.")+'</div><div class="actions"><button class="btn btn-go" onclick="FD.nav(&quot;'+esc(b.station_id)+'&quot;)">GO</button><button class="btn btn-light" onclick="FD.open(&quot;'+esc(b.station_id)+'&quot;)">Details</button><button class="drive-btn" onclick="FD.options()">View all options</button><button class="drive-btn" onclick="FD.drive()">Drive Mode</button></div>'}
 function altRows(limit,start){start=start||0;return ranked.filter(function(x){return !priceNeedsReview(x)}).slice(start,start+limit).map(function(x,i){var rank=start+i+1;return '<button type="button" class="alt compact-alt" onclick="FD.open(&quot;'+esc(x.station_id)+'&quot;)"><div class="alt-brand">'+brandRank(x.brand,x.station_name,rank)+'</div><div class="compact-alt-main"><b>'+esc(x.station_name)+'</b><span>'+esc(x.suburb||"")+' · '+x.distance.toFixed(1)+' km</span></div><div class="alt-price"><b>'+x.price.toFixed(1)+'¢</b><span>'+(x.saving>0?cash(x.saving):"")+'</span></div></button>'}).join("")}
@@ -2799,6 +2801,8 @@ function syncMapStationCount(){
  e.onclick=function(){if(loc)showPage("options");else openArea()};
  e.onkeydown=function(event){if(event.key==="Enter"||event.key===" "){event.preventDefault();e.click()}};
 }
+// FMN_MARKER_BADGES_20261010: only presentation consumes the existing shared result set.
+function markerBadgeContext(row){return {bestId:summary?String(summary.best.station_id):null,cheapestId:summary?String(summary.cheapest.station_id):null,truck:!!window.FMNNearbyCore&&FMNNearbyCore.truckMode(prefs),review:priceNeedsReview(row)}}
 function renderMapMarkers(){
  syncMapStationCount();if(!map||!window.maplibregl)return;
  if(!loc){clearMapMarkers();return}
@@ -2821,9 +2825,11 @@ function renderMapMarkers(){
   if(sig!==pin.signature){el.innerHTML=brandMark(x.brand,x.station_name)+'<span class="pin-price">'+(+x.price).toFixed(1)+'<small>¢</small></span><span class="pin-value-label" hidden></span>';pin.signature=sig}
   if(+pin.station.longitude!==+x.longitude||+pin.station.latitude!==+x.latitude)pin.marker.setLngLat([+x.longitude,+x.latitude]);
   pin.station=x;el.classList.toggle("best",!!summary&&String(x.station_id)===String(summary.best.station_id)&&!priceNeedsReview(x));el.classList.toggle("price-needs-review",priceNeedsReview(x));el.classList.toggle("pin-detail",profile.detailed);el.classList.toggle("pin-compact",!profile.detailed);
-  var offer=!priceNeedsReview(x)&&Array.isArray(x._offers)&&x._offers.length>0;el.classList.toggle('has-verified-offer',offer);var badge=el.querySelector('.pin-value-label');if(badge){badge.hidden=!el.classList.contains('best')&&!offer;badge.textContent=el.classList.contains('best')?'★ Best value':'Offer';}el.dataset.bestValue=String(el.classList.contains('best'));
+  var presentation=FMNMarkerBadges.updateMarker(el,x,markerBadgeContext(x)),offer=presentation.offer;
+  pin.marker.setOffset([0,-8]);
   el.dataset.latitude=String(x.latitude);el.dataset.longitude=String(x.longitude);el.dataset.fuelGrade=x.fuel_type||prefs.fuel;
   el.setAttribute("aria-label",(el.classList.contains("best")?"Best estimated value. ":offer?"Active offer; check conditions. ":"")+x.station_name+", "+(x.fuel_type||prefs.fuel)+", "+(+x.price).toFixed(1)+" cents per litre. Open station details.");
+  el.setAttribute('aria-label',el.getAttribute('aria-label')+(presentation.cheapest?' Lowest pump price in these results.':'')+(presentation.truck?' Truck information available; clearance and approach require checking.':''));
   el.title=(priceNeedsReview(x)?"Price needs checking · ":"")+(x.brand||x.station_name)+" · "+(x.fuel_type||prefs.fuel)+" · "+(+x.price).toFixed(1)+"¢/L";
  });
  stationPinById.forEach(function(pin,id){if(!seen.has(id)){pin.marker.remove();stationPinById.delete(id)}});
@@ -2852,10 +2858,11 @@ function openExactPin(id){
   overlay=document.createElement("div");overlay.id="exactStationChooser";overlay.className="modal-bg";overlay.setAttribute("role","dialog");overlay.setAttribute("aria-modal","true");overlay.setAttribute("aria-label","Choose a station");
   overlay.innerHTML='<div class="modal popup-shell"><div class="popup-scroll"><h2>Choose a station</h2><p>These pins overlap at this zoom. Each arrow stays at its actual location.</p><div id="exactStationChoices"></div></div><div class="popup-footer"><button type="button" class="popup-back">‹ Back</button></div></div>';
   document.body.appendChild(overlay);overlay.querySelector(".popup-back").onclick=function(){overlay.classList.remove("open")};overlay.onclick=function(e){if(e.target===overlay)overlay.classList.remove("open")};
-  overlay.addEventListener("keydown",function(e){if(e.key==="Escape"){e.preventDefault();e.stopPropagation();overlay.classList.remove("open");chosen.element.focus()}});
+  overlay.addEventListener("keydown",function(e){if(e.key==="Escape"){e.preventDefault();e.stopPropagation();overlay.classList.remove("open");overlay._returnPin?.focus({preventScroll:true})}});
  }
+ overlay._returnPin=chosen.element;
  var list=$("exactStationChoices");list.innerHTML="";
- nearby.sort(function(a,b){return +a.station.price-+b.station.price}).forEach(function(pin){var x=pin.station,b=document.createElement("button");b.type="button";b.className="exact-station-choice";b.dataset.stationId=String(x.station_id);b.innerHTML=brandMark(x.brand,x.station_name)+'<span><b>'+esc(x.station_name)+'</b><small>'+esc(x.fuel_type||prefs.fuel)+' · '+(+x.price).toFixed(1)+'¢/L</small></span>';b.onclick=function(){overlay.classList.remove("open");openStation(x.station_id);highlightStationPin(x.station_id)};list.appendChild(b)});
+ nearby.sort(function(a,b){return Number(b.element.dataset.markerPriority)-Number(a.element.dataset.markerPriority)||+a.station.price-+b.station.price||String(a.station.station_id).localeCompare(String(b.station.station_id))}).forEach(function(pin){var x=pin.station,b=document.createElement("button");b.type="button";b.className="exact-station-choice";b.dataset.stationId=String(x.station_id);b.innerHTML=brandMark(x.brand,x.station_name)+'<span><b>'+esc(x.station_name)+'</b><small>'+esc(x.fuel_type||prefs.fuel)+' · '+(+x.price).toFixed(1)+'¢/L</small></span>';var d=FMNMarkerBadges.describe(x,markerBadgeContext(x));b.classList.toggle("best",d.best);if(d.primary){var badge=document.createElement("span");badge.className="station-badge-traits";var label=document.createElement("span");label.className="station-trait";label.textContent=d.primary;badge.append(label);b.querySelector(":scope > span:last-child").append(badge)}b.onclick=function(){overlay.classList.remove("open");openStation(x.station_id);highlightStationPin(x.station_id)};list.appendChild(b)});
  overlay.classList.add("open");list.querySelector("button").focus();
 }
 function installPopupFooters(){
@@ -3285,7 +3292,7 @@ window.FMNJourneyApp={
  }
 };
 // FMN_VALUE_TRUCK_ACTIONS_20261009
-window.FMNNearbyApp={getBestId:function(){return summary?String(summary.best.station_id):null},getStation:find,refreshResults:function(){render();if(document.body.dataset.page==='options')renderOptions()},getLocation:function(){return loc},getPrefs:function(){return prefs},renderOptions:renderOptions,toast:toast,
+window.FMNNearbyApp={getCheapestId:function(){return summary?String(summary.cheapest.station_id):null},getBestId:function(){return summary?String(summary.best.station_id):null},getStation:find,refreshResults:function(){render();if(document.body.dataset.page==='options')renderOptions()},getLocation:function(){return loc},getPrefs:function(){return prefs},renderOptions:renderOptions,toast:toast,
  applyRadius:function(radius){if(radius>prefs.radius){prefs.radius=radius;persist();syncFuel();load()}},
  setVehicle:function(kind){setPreset(kind);render();},
  saveVehicleQuiet:function(value){Object.assign(prefs,value);prefs.vehicleProfiles=prefs.vehicleProfiles||{};prefs.vehicleProfiles[prefs.vehicle]={tank:prefs.tank,economy:prefs.economy,truck:prefs.truck};try{persist();return true}catch(e){return false}},

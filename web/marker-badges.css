@@ -1,0 +1,27 @@
+/* FMN_BADGE_HIERARCHY_20261010. Never replace MapLibre's positioning transform.
+   The isolated canvas container keeps every marker below map controls/popups. */
+body #page-explore #exploreMap .station-pin{z-index:10!important}
+body #page-explore #exploreMap .station-pin[data-marker-kind=truck]{z-index:20!important}
+body #page-explore #exploreMap .station-pin[data-marker-kind=deal]{z-index:30!important}
+body #page-explore #exploreMap .station-pin[data-marker-kind=cheapest]{z-index:40!important;border-color:#4b9367!important}
+body #page-explore #exploreMap .station-pin[data-marker-kind=best]{z-index:50!important;border-color:#087532!important;background:#effbf3!important;box-shadow:0 0 0 3px #08753230,0 4px 12px #123b2860!important}
+body #page-explore #exploreMap .station-pin.selected,body #page-explore #exploreMap .station-pin:focus-visible{z-index:60!important;border-color:#184ece!important;box-shadow:0 0 0 3px #184ece55,0 3px 12px #15241b55!important}
+/* Enlarge actual dimensions instead of transform:scale(), keeping the 8px arrow tip fixed. */
+body #page-explore #exploreMap .station-pin.cheapest:not(.best).pin-detail{width:63px!important;min-width:63px!important;max-width:63px!important;height:69.3px!important;min-height:69.3px!important;max-height:69.3px!important}
+body #page-explore #exploreMap .station-pin.cheapest:not(.best).pin-compact{width:50.4px!important;min-width:50.4px!important;max-width:50.4px!important;height:50.4px!important;min-height:50.4px!important;max-height:50.4px!important}
+body #page-explore #exploreMap .station-pin.best.pin-detail{width:72px!important;min-width:72px!important;max-width:72px!important;height:79.2px!important;min-height:79.2px!important;max-height:79.2px!important;padding:4px!important;gap:3px!important}
+body #page-explore #exploreMap .station-pin.best.pin-detail .brand-mark{width:55.2px!important;min-width:55.2px!important;height:38.4px!important;flex:0 0 38.4px!important}
+body #page-explore #exploreMap .station-pin.best.pin-detail .pin-price{font-size:18px!important;line-height:24px!important}
+body #page-explore #exploreMap .station-pin.best.pin-compact{width:57.6px!important;min-width:57.6px!important;max-width:57.6px!important;height:57.6px!important;min-height:57.6px!important;max-height:57.6px!important;padding:4px!important}
+body #page-explore #exploreMap .station-pin.best.pin-compact .brand-mark{width:45.6px!important;min-width:45.6px!important;height:43.2px!important;flex:0 0 43.2px!important}
+body #page-explore #exploreMap .station-pin:not(.best) .pin-price{background:transparent!important;color:#15241b!important}
+body #page-explore #exploreMap .station-pin.cheapest:not(.best) .pin-price{color:#08602b!important}
+body #page-explore #exploreMap .station-pin .pin-value-label{top:-21px!important;line-height:16px!important;font-size:11px!important;max-width:none!important}
+body #page-explore #exploreMap .station-pin[data-marker-kind=cheapest] .pin-value-label,body #page-explore #exploreMap .station-pin[data-marker-kind=deal] .pin-value-label{background:#e5f5eb!important;color:#075326!important;border-color:#65a27a!important}
+body #page-explore #exploreMap .station-pin[data-marker-kind=truck] .pin-value-label{background:#edf2f7!important;color:#273e55!important;border-color:#a2b2c4!important}
+body #page-explore #exploreMap .station-pin .pin-secondary-tags{position:absolute!important;left:50%!important;bottom:calc(100% + 21px)!important;transform:translateX(-50%)!important;display:flex!important;gap:3px!important;width:max-content!important;pointer-events:none!important}
+body #page-explore #exploreMap .station-pin .pin-mini-tag{display:inline-block!important;padding:1px 4px!important;border:1px solid #a0bea9!important;border-radius:4px!important;background:#f1faf4!important;color:#134d2c!important;font-size:10px!important;line-height:14px!important;font-weight:750!important;white-space:nowrap!important}
+body #page-explore #exploreMap .station-pin .pin-mini-tag.truck{background:#edf2f7!important;color:#273e55!important;border-color:#a2b2c4!important}
+body #page-explore #exploreMap .station-pin .pin-secondary-tags[hidden],body #page-explore #exploreMap .station-pin .pin-value-label[hidden],body #page-explore #exploreMap .station-pin.pin-compact .pin-secondary-tags{display:none!important}
+.station-badge-traits{display:flex!important;gap:5px;flex-wrap:wrap;margin:0 0 7px;max-width:100%}.station-trait{display:inline-block!important;border:1px solid #6eaa83;border-radius:7px;padding:4px 7px;background:#f0f9f3;color:#165b30;font-size:12px!important;font-weight:750;line-height:1.35;white-space:normal!important}.station-trait.truck{background:#edf2f7;color:#273e55;border-color:#b1c0d0}
+.exact-station-choice .station-badge-traits{margin:5px 0 0}.exact-station-choice.best{border-color:#087532!important;background:#effbf3!important}

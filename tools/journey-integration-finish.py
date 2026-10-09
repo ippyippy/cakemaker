@@ -1,7 +1,7 @@
 from pathlib import Path
 p=Path('web/nearby-ui.js');s=p.read_text()
 s=s.replace('function destinationChanged(){','function destinationChanged(event){').replace("if(read('fmnDestinationFilterKey',null)!==key){","if(event?.detail?.changed===true||read('fmnDestinationFilterKey',null)!==key){")
-s=s.replace("function mapCaption(){const f=useFilters();return", "function mapCaption(){const f=useFilters();if(window.FMNJourney?.getDestination()?.manual)return 'Destination needs an area suggestion · not filtered';return")
+s=s.replace("function mapCaption(){const f=useFilters();return", "function mapCaption(){if(!app)return '';const f=useFilters();if(window.FMNJourney?.getDestination()?.manual)return 'Destination needs an area suggestion · not filtered';return")
 s=s.replace("const s=document.getElementById('nearbyFilterSummary');s.textContent=summary(lastList.length,lastCount);", "const s=document.getElementById('nearbyFilterSummary');s.textContent=summary(lastList.length,lastCount)+(window.FMNJourney?.getDestination()?.manual?' Destination is saved for external Maps only. Choose an area suggestion to filter here.':'');")
 p.write_text(s)
 p=Path('web/journey.js');s=p.read_text()
@@ -13,5 +13,7 @@ s=s.replace("b.type='button';b.onclick=()=>saveDestination(clean);", "b.type='bu
 s=s.replace("const manual=element('button','Use “'+query+'” as destination in Maps','journey-result');", "const manual=element('button','External Google Maps only: “'+query+'” (does not filter stations)','journey-result');")
 s=s.replace('box.append(manual);}}}', "if(!box.querySelector('[data-geocoded=true]'))box.append(manual);}}}")
 p.write_text(s)
-p=Path('web/index.html');s=p.read_text().replace('openArea:openArea,closeArea:closeArea,toast:toast,','openArea:openArea,closeArea:closeArea,openExplore:function(){showPage("explore")},toast:toast,');p.write_text(s)
-print('Explicit destination selection activates filtering; opening a dialog respects All directions; Maps-only text is labelled.')
+p=Path('web/index.html');s=p.read_text().replace('openArea:openArea,closeArea:closeArea,toast:toast,','openArea:openArea,closeArea:closeArea,openExplore:function(){showPage("explore")},toast:toast,')
+s=s.replace('"fmnJourney","fmnVehicleDraft"','"fmnJourney","fmnDestinationFilterKey","fmnVehicleDraft"');p.write_text(s)
+assert '"fmnJourney","fmnDestinationFilterKey","fmnVehicleDraft"' in s
+print('Explicit destination activation, saved All preference, Maps-only labels and complete reset verified.')

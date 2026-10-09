@@ -1,4 +1,4 @@
-const CACHE = 'fillmenow-web-v24-session-preferences-20261009';
+const CACHE = 'fillmenow-web-v25-location-prompt-20261009';
 const SHELL = ["/gps-permission.js", "/live-location.js", "/live-location.css", "/journey.js", "/journey.css", "/nearby-core.js", "/nearby-ui.js", "/nearby.css", "/data/station-information.json", "/startup-support.css", "/support-chat.js", "/interaction-polish.css", "/", "/manifest.webmanifest", "/icon.svg", "/icons/icon-192.png", "/icons/icon-512.png", "/assets/maplibre.js", "/assets/maplibre.css", "/privacy", "/terms", "/assets/brands/bp.svg", "/assets/brands/shell.svg", "/assets/brands/caltex.png", "/assets/brands/ampol.svg", "/assets/brands/united.png", "/assets/brands/metro.png", "/assets/brands/liberty.svg", "/assets/brands/puma.svg", "/assets/brands/reddy.png", "/assets/brands/seven.svg"];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));

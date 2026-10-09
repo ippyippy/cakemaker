@@ -1,0 +1,72 @@
+name: FillMeNow in-app location prompt QA
+on:
+  push:
+    branches: [feature/in-app-location-prompt-20261009]
+    paths: ['tools/location-prompt-*', 'web/gps-permission.js', '.github/workflows/location-prompt-qa.yml']
+permissions:
+  contents: read
+concurrency:
+  group: fillmenow-location-prompt
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Apply scoped permission UI wiring
+        run: |
+          python3 tools/location-prompt-apply.py
+          node --check web/gps-permission.js
+          node --check web/journey.js
+          node --check web/live-location.js
+          git diff --check
+      - name: Install isolated pinned browser tools
+        run: |
+          npm install --prefix /tmp/fmn-qa --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          /tmp/fmn-qa/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Verify automatic prompt and real browser control
+        env:
+          NODE_PATH: /tmp/fmn-qa/node_modules
+        run: node tools/location-prompt-test.cjs
+      - name: Preserve existing features after choosing Not now
+        env:
+          NODE_PATH: /tmp/fmn-qa/node_modules
+        run: |
+          node -r ./tools/location-prompt-optout-fixture.cjs tools/session-preferences-test.cjs
+          node -r ./tools/location-prompt-optout-fixture.cjs tools/value-truck-test.cjs
+          node -r ./tools/location-prompt-optout-fixture.cjs tools/shared-search-test.cjs
+          node -r ./tools/location-prompt-optout-fixture.cjs tools/saved-stations-test.cjs
+          node -r ./tools/location-prompt-optout-fixture.cjs tools/dash-position-test.cjs
+          node -r ./tools/location-prompt-optout-fixture.cjs tools/exact-map-test.cjs
+          node -r ./tools/location-prompt-optout-fixture.cjs tools/support-release-test.cjs
+          node tools/nearby-test.cjs
+          node tools/backend-route-test.cjs
+          git diff --check
+      - name: Commit passing source to this feature branch only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/feature/in-app-location-prompt-20261009
+          git add web/journey.js web/journey.css web/live-location.js web/sw.js
+          if ! git diff --cached --quiet; then
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Apply tested consent-first location prompt wiring'
+            git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/feature/in-app-location-prompt-20261009
+          fi
+          git rev-parse HEAD > qa-results/location-prompt/review-commit.txt
+      - name: Preserve public-source evidence without actual user coordinates
+        if: always()
+        run: |
+          mkdir -p qa-results/location-prompt
+          cp -r web qa-results/location-prompt/reviewed-web
+          cp tools/location-prompt-* qa-results/location-prompt/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fillmenow-location-prompt-evidence
+          path: qa-results/
+          retention-days: 7

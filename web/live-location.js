@@ -15,18 +15,19 @@ function offset(){const m=app?.getMap(),box=m?.getContainer()?.getBoundingClient
 function centre(p){if(!wanted||!locked||quality!=='precise'||!fresh())return;map=app?.getMap();if(!map)return;const options={center:[p.lng,p.lat],offset:offset(),duration:220};if(streetZoom){options.zoom=Math.max(map.getZoom(),15);if(map.getZoom()>=14.999999)streetZoom=false;}map.easeTo(options);}
 function layout(){clearTimeout(layoutTimer);layoutTimer=setTimeout(()=>{if(lastPoint)centre(lastPoint);},280);}
 function waiting(kind,message){quality=kind;buttons();say(message);}
-function fail(code){if(code===1){release();wanted=false;locked=false;quality='denied';buttons();say('Location blocked. Allow precise location for this app/browser. Tap Precise GPS help.');return;}
+function fail(code){root.FMNPermissionUI?.offer(code===1?'denied':code===3?'timeout':'unavailable','follow');if(code===1){release();wanted=false;locked=false;quality='denied';buttons();say('Location blocked. Allow precise location for this app/browser. Tap Precise GPS help.');return;}
  // A temporary timeout is not a reason to cancel the watch: GPS may acquire or recover later.
  waiting(lastPoint?'stale':'waiting',code===3?'Waiting for a fresh precise GPS fix. Still trying; check Precise GPS help.':'GPS temporarily unavailable. Still trying while the app is open.');}
 function receive(position,id){if(id!==generation||!wanted||document.hidden)return;const result=core.assessPosition(position,Date.now(),lastTimestamp);
+ if(result.kind==='coarse')root.FMNPermissionUI?.offer('coarse','follow',result.accuracy);
  if(result.kind!=='precise'){if(result.kind==='coarse')waiting('coarse','Precise GPS needed — phone reports ±'+Math.round(result.accuracy)+' m. Not following this approximate position.');else if(result.kind==='stale')waiting('stale','GPS position is out of date. Waiting for a fresh fix.');else waiting('waiting','Waiting for a valid precise GPS fix.');return;}
  const p=result.position,state=app.locationState(p);if(!state){stop('GPS is outside automatic coverage or near a state boundary. Use Search to confirm your area.');return;}
- lastTimestamp=p.timestamp;lastPoint=p;quality='precise';const now=Date.now(),reload=!refreshPoint||now-refreshAt>180000||(now-refreshAt>=20000&&core.distance(refreshPoint,p)>=.5);
+ lastTimestamp=p.timestamp;lastPoint=p;quality='precise';root.FMNPermissionUI?.ready();const now=Date.now(),reload=!refreshPoint||now-refreshAt>180000||(now-refreshAt>=20000&&core.distance(refreshPoint,p)>=.5);
  if(reload){refreshAt=now;refreshPoint=p;}
  // Shared price/marker state is updated first. Camera follows the uncovered part of the map.
  app.applyLiveLocation(p,state,{reload,follow:false});buttons();say(locked?'Following · reported accuracy ±'+Math.round(p.accuracy)+' m':'GPS updating · map browsing');centre(p);
 }
-function start(){if(!app)return;window.FMNJourney?.cancelLocation();app.prepareLiveMap();bindMap();if(!root.isSecureContext||!navigator.geolocation?.watchPosition){quality='unsupported';say('Precise location needs HTTPS and a supported browser. Use Search or open FillMeNow directly.');buttons();return;}const policy=document.permissionsPolicy||document.featurePolicy;if(policy?.allowsFeature&&!policy.allowsFeature('geolocation')){fail(1);return;}
+function start(){if(!app)return;root.FMNPermissionUI?.attempt('follow');window.FMNJourney?.cancelLocation();app.prepareLiveMap();bindMap();if(!root.isSecureContext||!navigator.geolocation?.watchPosition){quality='unsupported';say('Precise location needs HTTPS and a supported browser. Use Search or open FillMeNow directly.');buttons();return;}const policy=document.permissionsPolicy||document.featurePolicy;if(policy?.allowsFeature&&!policy.allowsFeature('geolocation')){fail(1);return;}
  if(watch!==null&&wanted){locked=true;buttons();if(quality==='precise'&&fresh()){say('Following · reported accuracy ±'+Math.round(lastPoint.accuracy)+' m');centre(lastPoint);}else say('Still waiting for precise GPS. Tap Precise GPS help or Stop GPS.');return;}
  release();wanted=true;locked=true;quality='waiting';lastTimestamp=0;lastPoint=null;refreshPoint=null;streetZoom=true;const id=generation;buttons();say('Waiting for precise GPS. Choose Precise and Allow if asked.');
  watchdog=setInterval(()=>{if(id!==generation||!wanted)return;if(lastPoint&&!fresh()&&quality==='precise')waiting('stale','GPS has not updated recently. Last known position only; waiting for a fresh fix.');},2000);

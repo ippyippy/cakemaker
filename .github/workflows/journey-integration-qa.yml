@@ -1,0 +1,66 @@
+name: FillMeNow shared destination and GPS integration QA
+on:
+  push:
+    branches: [fix/journey-filter-integration-20261009]
+    paths: ['web/**', 'tools/journey-integration-*', '.github/workflows/journey-integration-qa.yml']
+permissions:
+  contents: read
+concurrency:
+  group: fillmenow-journey-integration
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Apply scoped existing-app changes without credentials
+        run: |
+          python3 tools/journey-integration-apply.py
+          python3 tools/journey-integration-finish.py
+          node --check web/journey.js
+          node --check web/nearby-ui.js
+          git diff --check
+      - name: Install pinned isolated browser tools
+        run: |
+          npm install --prefix /tmp/fmn-qa --ignore-scripts --no-audit --no-fund playwright@1.58.2
+          /tmp/fmn-qa/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Verify shared results and retain existing features
+        env:
+          NODE_PATH: /tmp/fmn-qa/node_modules
+        run: |
+          node tools/journey-integration-test.cjs
+          node tools/nearby-test.cjs
+          node tools/saved-stations-test.cjs
+          node tools/dash-position-test.cjs
+          node tools/exact-map-test.cjs
+          node tools/support-release-test.cjs
+          node tools/backend-route-test.cjs
+          git diff --check
+      - name: Commit passing generated source on this branch only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/fix/journey-filter-integration-20261009
+          git add web/index.html web/nearby-ui.js web/journey.js web/nearby.css web/sw.js web/data/station-information.json
+          if ! git diff --cached --quiet; then
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Unify tested destination and access filters; use fresh GPS from Search'
+            git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/fix/journey-filter-integration-20261009
+          fi
+          git rev-parse HEAD > qa-results/integration/review-commit.txt
+      - name: Preserve public source and labelled test evidence
+        if: always()
+        run: |
+          mkdir -p qa-results/integration
+          cp -r web qa-results/integration/reviewed-web
+          cp tools/journey-integration-* qa-results/integration/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fillmenow-journey-integration-evidence
+          path: qa-results/
+          retention-days: 7

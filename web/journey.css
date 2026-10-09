@@ -31,3 +31,5 @@ body .journey-dialog footer button:last-child:not(:first-child){background:#0873
 body #truckAccessNotice{font-size:14px;line-height:1.5;color:#425447;background:#f0f5f0;padding:10px 12px;border-radius:10px;margin:0 0 12px}
 body #page-options #optionsRadius:focus:not(:focus-visible){outline:none!important}
 @media(max-height:500px){body #areaModal .location-heading{padding:10px 16px}body #areaModal .location-heading h2{font-size:19px!important}body .journey-dialog header{padding:10px 16px}}
+
+body #optionsWiden[hidden]{display:none!important}

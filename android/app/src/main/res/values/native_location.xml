@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="native_location_status" type="id" />
+    <item name="native_location_enable" type="id" />
+    <item name="native_location_permissions" type="id" />
+    <item name="native_location_phone" type="id" />
+    <item name="native_location_test" type="id" />
+    <item name="native_location_open_map" type="id" />
+    <style name="NativeLocationTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#087532</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowBackground">#FFFFFF</item>
+    </style>
+</resources>

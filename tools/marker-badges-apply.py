@@ -25,9 +25,11 @@ function renderMapMarkers(){""")
     s=change(s,' var list=$("exactStationChoices");list.innerHTML="";', ' overlay._returnPin=chosen.element;\n var list=$("exactStationChoices");list.innerHTML="";')
     s=change(s,'chosen.element.focus()', 'overlay._returnPin?.focus({preventScroll:true})')
     s=change(s,'nearby.sort(function(a,b){return +a.station.price-+b.station.price})', 'nearby.sort(function(a,b){return Number(b.element.dataset.markerPriority)-Number(a.element.dataset.markerPriority)||+a.station.price-+b.station.price||String(a.station.station_id).localeCompare(String(b.station.station_id))})')
-    s=change(s,';b.onclick=function(){overlay.classList.remove("open");openStation(x.station_id);highlightStationPin(x.station_id)};list.appendChild(b)', ';var d=FMNMarkerBadges.describe(x,markerBadgeContext(x));b.classList.toggle("best",d.best);if(d.primary){var badge=document.createElement("span");badge.className="station-badge-traits";var label=document.createElement("span");label.className="station-trait";label.textContent=d.primary;badge.append(label);b.querySelector("span").append(badge)}b.onclick=function(){overlay.classList.remove("open");openStation(x.station_id);highlightStationPin(x.station_id)};list.appendChild(b)')
+    s=change(s,';b.onclick=function(){overlay.classList.remove("open");openStation(x.station_id);highlightStationPin(x.station_id)};list.appendChild(b)', ';var d=FMNMarkerBadges.describe(x,markerBadgeContext(x));b.classList.toggle("best",d.best);if(d.primary){var badge=document.createElement("span");badge.className="station-badge-traits";var label=document.createElement("span");label.className="station-trait";label.textContent=d.primary;badge.append(label);b.querySelector(":scope > span:last-child").append(badge)}b.onclick=function(){overlay.classList.remove("open");openStation(x.station_id);highlightStationPin(x.station_id)};list.appendChild(b)')
     assert artwork==re.findall(r'data:image/[^\s\"\'\)<>]+',s),'Artwork changed'
     p.write_text(s)
+# Idempotent upgrade of an earlier local candidate; badges must not enter brand artwork.
+s=s.replace('b.querySelector("span").append(badge)','b.querySelector(":scope > span:last-child").append(badge)');p.write_text(s)
 p=Path('web/nearby-ui.js');s=p.read_text()
 if 'FMNMarkerBadges.updateCard' not in s:
     s=change(s,"if(best)main.prepend(el('span','★ Best value','value-badge'));", "if(best)main.prepend(el('span','★ Best value','value-badge'));FMNMarkerBadges.updateCard(main,x,{bestId:app.getBestId?.(),cheapestId:app.getCheapestId?.(),truck:C.truckMode(context()),review:x._review});")
@@ -44,4 +46,10 @@ old="await p.locator('[data-station-id=\"EXACT-2\"]').first().click();await p.lo
 new="await p.locator('#exploreMap .station-pin.best').click();await p.locator('#exactStationChooser.open').waitFor();assert.equal(await p.locator('#exactStationChoices [data-station-id=\"EXACT-2\"]').count(),1);await p.locator('#exactStationChoices [data-station-id=\"EXACT-2\"]').click();assert.equal(await p.locator('#exploreMap [data-station-id=\"EXACT-2\"]').getAttribute('aria-pressed'),'true');"
 if old in s:s=change(s,old,new);p.write_text(s)
 else:assert new in s
+# Network refresh intentionally clears old price data in the existing app. Test
+# deterministic winner identity after refresh; unchanged nodes are required during zoom.
+p=Path('tools/marker-badges-test.cjs')
+if p.exists():
+    s=p.read_text().replace("assert.equal(await p.evaluate(()=>window.__winningPin===document.querySelector('#exploreMap .station-pin.best')),true);", "assert.equal(await p.locator('#exploreMap .station-pin.best').getAttribute('data-station-id'),'BEST');assert.equal(await p.locator('#exploreMap .station-pin.best').count(),1);")
+    s=s.replace('reordered refresh retains its node','reordered refresh retains the same winning station');p.write_text(s)
 print('Applied larger hero, shared badges and selected-marker priority; exact coordinates and covered-station access retained.')

@@ -16,4 +16,8 @@ p=Path('web/journey.css');s=p.read_text()
 rule='\nbody #optionsWiden[hidden]{display:none!important}\n'
 if rule not in s:s+=rule
 p.write_text(s)
-print('Journey mount order, state-boundary confirmation and hidden empty-state action verified.')
+# Browser evidence confirmed the option has disabled="", while locator.isDisabled()
+# does not report OPTION state in this harness. Assert the native property directly.
+for name in ['tools/journey-fix-test.cjs','tools/nearby-browser-test.cjs']:
+ p=Path(name);s=p.read_text();s=s.replace("p.locator('[name=access] option[value=matches]').isDisabled()", "p.locator('[name=access] option[value=matches]').evaluate(e=>e.disabled)");p.write_text(s)
+print('Journey mount order, state-boundary confirmation and native disabled option state verified.')

@@ -1,0 +1,16 @@
+{
+  "appId": "au.com.fillmenow.app",
+  "appName": "FillMeNow",
+  "webDir": "www",
+  "android": {
+    "path": "../android",
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "server": {
+    "hostname": "localhost",
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "loggingBehavior": "none"
+}

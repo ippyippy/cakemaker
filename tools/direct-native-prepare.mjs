@@ -113,7 +113,7 @@ fs.rmSync('native/www',{recursive:true,force:true});fs.cpSync('web','native/www'
 const files=['index.html','journey.js','live-location.js'];
 for(const name of files){const p='native/www/'+name;let s=fs.readFileSync(p,'utf8');s=s.replaceAll('navigator.geolocation','window.FMNNativeLocation.geolocation');
  if(name==='index.html'){
-  s=s.replace('</head>','<meta http-equiv="Content-Security-Policy" content="default-src \'self\' data: blob: https:; script-src \'self\' \'unsafe-inline\'; style-src \'self\' \'unsafe-inline\'; object-src \'none\'; frame-src \'none\'; base-uri \'self\'; form-action \'none\';"><script src="/native-entry.js"></script></head>');
+  s=s.replace('</head>','<meta http-equiv="Content-Security-Policy" content="default-src \'self\' data: blob: https:; script-src \'self\' \'unsafe-inline\'; worker-src \'self\' blob:; style-src \'self\' \'unsafe-inline\'; object-src \'none\'; frame-src \'none\'; base-uri \'self\'; form-action \'none\';"><script src="/native-entry.js"></script></head>');
   s=s.replace('async function swreg(){','async function swreg(){throw Error("Push is not enabled in this native GPS test");');
  }
  if(name==='live-location.js'||name==='journey.js')s=s.replace('function help(){','function help(){if(window.FMNNativeLocation){window.FMNPermissionUI.open();return;}');

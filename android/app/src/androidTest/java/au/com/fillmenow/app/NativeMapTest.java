@@ -4,7 +4,6 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.SystemClock;
-import android.webkit.WebView;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -35,17 +34,20 @@ public class NativeMapTest {
   waitFor("!window.__fmnReloadPending&&document.readyState==='complete'&&!!(window.FMNNativeLocation&&window.FMNJourneyApp&&window.FMNLiveLocation&&document.getElementById('recenterBtn'))",45);
  }
  private void tap(String selector)throws Exception{
-  String quoted=JSONObject.quote(selector);waitFor("!!document.querySelector("+quoted+")",15);
-  run("document.querySelector("+quoted+").scrollIntoView({block:'nearest',behavior:'instant'})");
-  JSONObject last=null,r=null;int stable=0;
-  for(int i=0;i<90;i++){
-   r=new JSONObject(json("(()=>{const e=document.querySelector("+quoted+");if(!e)return {};const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;return {x,y,w:innerWidth,hit:r.width>0&&r.height>0&&x>0&&x<innerWidth&&y>0&&y<innerHeight&&e.contains(document.elementFromPoint(x,y))}})()"));
-   if(r.optBoolean("hit")&&last!=null&&Math.abs(r.getDouble("x")-last.optDouble("x",-1000))<0.5&&Math.abs(r.getDouble("y")-last.optDouble("y",-1000))<0.5)stable++;else stable=0;
-   if(stable>=3)break;last=r;SystemClock.sleep(100);
+  String q=JSONObject.quote(selector);waitFor("!!document.querySelector("+q+")",15);
+  JSONObject label=new JSONObject(json("(()=>{const e=document.querySelector("+q+"),r=e.getBoundingClientRect();if(r.bottom<0||r.top>innerHeight)e.scrollIntoView({block:'nearest',behavior:'instant'});return {name:(e.getAttribute('aria-label')||e.innerText).trim(),text:e.innerText.trim()}})()"));
+  device.waitForIdle(1000);UiObject2 target=null;
+  for(String name:new String[]{label.getString("name"),label.getString("text")}){
+   if(name.isEmpty())continue;
+   target=device.wait(Until.findObject(By.desc(name).enabled(true)),1500);
+   if(target==null)target=device.wait(Until.findObject(By.text(name).enabled(true)),1500);
+   if(target!=null)break;
   }
-  assertTrue("Control is covered or still moving: "+selector,stable>=3);final JSONObject rectangle=r;final int[] point=new int[2];
-  scenario.onActivity(a->{WebView w=a.getBridge().getWebView();int[] p=new int[2];w.getLocationOnScreen(p);try{double scale=(w.getWidth()-w.getPaddingLeft()-w.getPaddingRight())/rectangle.getDouble("w");point[0]=(int)(p[0]+w.getPaddingLeft()+rectangle.getDouble("x")*scale);point[1]=(int)(p[1]+w.getPaddingTop()+rectangle.getDouble("y")*scale);}catch(Exception e){throw new RuntimeException(e);}});
-  assertTrue("Control outside screen",point[0]>=0&&point[0]<device.getDisplayWidth()&&point[1]>=0&&point[1]<device.getDisplayHeight());device.click(point[0],point[1]);
+  if(target==null)device.dumpWindowHierarchy(new File(dir(),"missing-control.xml"));
+  assertNotNull("Native accessibility target missing: "+selector+" "+label,target);
+  assertFalse("Native control has empty visible bounds",target.getVisibleBounds().isEmpty());
+  // UiAutomator uses Android's rendered accessibility bounds; no DOM click or guessed density conversion.
+  target.click();
  }
  private File dir(){File d=new File(InstrumentationRegistry.getInstrumentation().getTargetContext().getExternalFilesDir(null),"native-map-qa");d.mkdirs();return d;}
  private void screen(String name){device.takeScreenshot(new File(dir(),name+".png"));}
@@ -86,6 +88,6 @@ public class NativeMapTest {
    waitFor("FMNLiveLocation.getState().following&&FMNNativeLocation.diagnostics().updates>=2",40);screen("06-map-after-system-location-recovery");
    tap("#followToggle");waitFor("FMNNativeLocation.diagnostics().subscribers===0&&!FMNLiveLocation.getState().following",10);
    System.out.println("PASS: actual Android denial/precise approval; browser GPS disabled; native updates move both map origin and camera; Stop and one-shot Search use same provider; foreground stop; preferences retained; genuine system Location-on consent returns to native map following. Emulator positions, not physical reception.");
-  }catch(Throwable t){screen("failure");try(FileOutputStream f=new FileOutputStream(new File(dir(),"failure-state.json"))){f.write(json("({ready:document.readyState,page:document.body?.dataset.page,onboarded:localStorage.getItem('fmnOnboarded'),controls:!!document.getElementById('recenterBtn'),native:window.FMNNativeLocation?.diagnostics(),follow:window.FMNLiveLocation?.getState(),onboarding:!!document.querySelector('#fmnOnboard.open')})").getBytes(StandardCharsets.UTF_8));}catch(Exception ignored){}throw t;}finally{if(scenario!=null)scenario.close();}
+  }catch(Throwable t){screen("failure");try{device.dumpWindowHierarchy(new File(dir(),"failure-hierarchy.xml"));}catch(Exception ignored){}try(FileOutputStream f=new FileOutputStream(new File(dir(),"failure-state.json"))){f.write(json("({ready:document.readyState,page:document.body?.dataset.page,onboarded:localStorage.getItem('fmnOnboarded'),controls:!!document.getElementById('recenterBtn'),native:window.FMNNativeLocation?.diagnostics(),follow:window.FMNLiveLocation?.getState(),onboarding:!!document.querySelector('#fmnOnboard.open')})").getBytes(StandardCharsets.UTF_8));}catch(Exception ignored){}throw t;}finally{if(scenario!=null)scenario.close();}
  }
 }

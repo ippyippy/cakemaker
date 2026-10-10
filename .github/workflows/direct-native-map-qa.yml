@@ -18,12 +18,14 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Prepare direct native app and cancellation checks
         run: |
+          node tools/direct-native-hardening.mjs
           node tools/direct-native-prepare.mjs
           node tools/direct-native-unit.mjs
           git diff --check
-          test -z "$(git diff f6c401b60487e1f0c4998306e3e896d78ab8f64f -- web backend ios)"
+          git diff --exit-code f6c401b60487e1f0c4998306e3e896d78ab8f64f -- web backend ios
       - name: Set up pinned Android tools
         run: |
           set -euo pipefail
@@ -90,7 +92,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = refs/heads/fix/direct-native-map-location-20261011
-          git add android/build.gradle android/settings.gradle android/app/build.gradle android/app/proguard-rules.pro android/app/src/main/AndroidManifest.xml android/app/src/main/java android/app/src/main/res/values/styles.xml native/package.json native/package-lock.json native/capacitor.config.json
+          git add android/build.gradle android/settings.gradle android/app/build.gradle android/app/proguard-rules.pro android/app/src/main/AndroidManifest.xml android/app/src/main/java android/app/src/main/res/values/styles.xml native/package.json native/package-lock.json native/capacitor.config.json tools/direct-native-prepare.mjs
           if ! git diff --cached --quiet; then
             git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Apply tested direct native GPS map integration'
             git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/fix/direct-native-map-location-20261011

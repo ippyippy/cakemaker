@@ -1,0 +1,126 @@
+name: FillMeNow direct native GPS to map
+on:
+  push:
+    branches: [fix/direct-native-map-location-20261011]
+    paths: ['native/**', 'tools/direct-native-*', 'android/app/src/androidTest/**', '.github/workflows/direct-native-map-qa.yml']
+permissions:
+  contents: read
+concurrency:
+  group: fillmenow-direct-native-map-v2
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Prepare direct native app and cancellation checks
+        run: |
+          node tools/direct-native-hardening.mjs
+          node tools/direct-native-prepare.mjs
+          node tools/direct-native-unit.mjs
+          git diff --check
+          git diff --exit-code f6c401b60487e1f0c4998306e3e896d78ab8f64f -- web backend ios
+      - name: Set up pinned Android tools
+        run: |
+          set -euo pipefail
+          echo "JAVA_HOME=$JAVA_HOME_21_X64" >> "$GITHUB_ENV"
+          echo "$JAVA_HOME_21_X64/bin" >> "$GITHUB_PATH"
+          curl -fsSL https://services.gradle.org/distributions/gradle-8.14.3-bin.zip -o /tmp/gradle.zip
+          EXPECTED="$(curl -fsSL https://services.gradle.org/distributions/gradle-8.14.3-bin.zip.sha256)"
+          echo "$EXPECTED  /tmp/gradle.zip" | sha256sum -c -
+          unzip -q /tmp/gradle.zip -d /tmp
+          echo /tmp/gradle-8.14.3/bin >> "$GITHUB_PATH"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0' 'platform-tools' 'emulator' 'system-images;android-35;google_apis;x86_64' >/dev/null
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+      - name: Compile release app and installed-map instrumentation
+        run: gradle -p android --no-daemon :app:assembleRelease :app:assembleReleaseAndroidTest :app:lintRelease --stacktrace
+      - name: Sign isolated emulator copies only
+        run: |
+          set -euo pipefail
+          mkdir -p direct-native-package direct-native-qa
+          BT="$ANDROID_HOME/build-tools/36.0.0"
+          "$BT/zipalign" -f -p 4 android/app/build/outputs/apk/release/app-release-unsigned.apk direct-native-package/FillMeNow-direct-unsigned.apk
+          cp "$BT/lib/apksigner.jar" direct-native-package/
+          "$BT/aapt" dump badging direct-native-package/FillMeNow-direct-unsigned.apk > direct-native-qa/apk-badging.txt
+          "$BT/aapt" dump permissions direct-native-package/FillMeNow-direct-unsigned.apk > direct-native-qa/permissions.txt
+          ! grep -q ACCESS_BACKGROUND_LOCATION direct-native-qa/permissions.txt
+          keytool -genkeypair -keystore /tmp/emulator-only.jks -storepass emulator-only-pass -keypass emulator-only-pass -alias qa -dname 'CN=Disposable Emulator Test' -keyalg RSA -validity 2 >/dev/null 2>&1
+          "$BT/apksigner" sign --ks /tmp/emulator-only.jks --ks-pass pass:emulator-only-pass --out /tmp/fmn-app.apk direct-native-package/FillMeNow-direct-unsigned.apk
+          TEST_APK="$(find android/app/build/outputs/apk/androidTest -name '*.apk' | head -1)"
+          "$BT/apksigner" sign --ks /tmp/emulator-only.jks --ks-pass pass:emulator-only-pass --out /tmp/fmn-test.apk "$TEST_APK"
+      - name: Start disposable Android emulator
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          sudo chmod 666 /dev/kvm
+          export ANDROID_USER_HOME="$HOME/.android" ANDROID_AVD_HOME="$HOME/.android/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd --force -n fmn-direct -k 'system-images;android-35;google_apis;x86_64' --device pixel_6
+          nohup "$ANDROID_HOME/emulator/emulator" -avd fmn-direct -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -accel on > /tmp/fmn-direct-emulator.log 2>&1 &
+          timeout 180 adb wait-for-device
+          for i in $(seq 1 90); do test "$(timeout 5 adb shell getprop sys.boot_completed | tr -d '\r')" = 1 && break; sleep 2; done
+          test "$(timeout 5 adb shell getprop sys.boot_completed | tr -d '\r')" = 1
+          adb shell input keyevent 82
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+      - name: Run actual native to map end-to-end test
+        timeout-minutes: 6
+        run: |
+          set -euo pipefail
+          adb install /tmp/fmn-app.apk
+          adb install /tmp/fmn-test.apk
+          python3 - <<'PY' &
+          import subprocess,time
+          for i in range(360):
+              subprocess.run(['adb','emu','geo','fix',str(153.025+(i%80)*.0001),'-27.47'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+              time.sleep(1)
+          PY
+          FEED=$!
+          trap 'kill "$FEED" 2>/dev/null || true' EXIT
+          timeout 280 adb shell am instrument -w -r au.com.fillmenow.app.test/androidx.test.runner.AndroidJUnitRunner | tee direct-native-qa/instrumentation.txt
+          grep -q 'OK (1 test)' direct-native-qa/instrumentation.txt
+      - name: Save passing source and unsigned signing payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/fix/direct-native-map-location-20261011
+          git add android/build.gradle android/settings.gradle android/app/build.gradle android/app/proguard-rules.pro android/app/src/main/AndroidManifest.xml android/app/src/main/java android/app/src/main/res/values/styles.xml native/package.json native/package-lock.json native/capacitor.config.json tools/direct-native-prepare.mjs
+          if ! git diff --cached --quiet; then
+            git -c user.name='FillMeNow QA' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Apply tested direct native GPS map integration'
+            git -c credential.helper='!gh auth git-credential' push origin HEAD:refs/heads/fix/direct-native-map-location-20261011
+          fi
+          git rev-parse HEAD > direct-native-package/source-commit.txt
+          cp direct-native-qa/instrumentation.txt direct-native-package/
+          (cd direct-native-package && sha256sum *.apk *.jar > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: FillMeNow-direct-native-passing-build
+          path: direct-native-package/
+          retention-days: 7
+      - name: Preserve test screenshots and diagnostics
+        if: always()
+        timeout-minutes: 1
+        run: |
+          mkdir -p direct-native-qa
+          timeout 15 adb pull /sdcard/Android/data/au.com.fillmenow.app/files/native-map-qa direct-native-qa/ || true
+          cp android/app/build/reports/lint-results-release.* direct-native-qa/ 2>/dev/null || true
+          cp /tmp/fmn-direct-emulator.log direct-native-qa/ 2>/dev/null || true
+          timeout 15 adb logcat -d -t 1000 > direct-native-qa/emulator-log.txt 2>/dev/null || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: FillMeNow-direct-native-map-evidence
+          path: direct-native-qa/
+          retention-days: 7
+      - name: Stop emulator
+        if: always()
+        timeout-minutes: 1
+        run: timeout 10 adb emu kill || true

@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {createLocationFacade} from '../native/location-facade.mjs';
+const tick=()=>new Promise(r=>setTimeout(r,0));
+let callback,calls=0,cleared=[],permission={location:'granted',coarseLocation:'granted'},on=true;
+const plugin={requestPermissions:async()=>permission,watchPosition:async(o,cb)=>{calls++;callback=cb;assert.equal(o.enableHighAccuracy,true);assert.equal(o.maximumAge,0);assert.equal(o.interval,1000);return 'watch-'+calls;},clearWatch:async({id})=>cleared.push(id)};
+const facade=createLocationFacade(plugin,{ensureEnabled:async()=>{}},()=>on);
+let a=[],b=[];let first=facade.geolocation.watchPosition(p=>a.push(p));let second=facade.geolocation.watchPosition(p=>b.push(p));await tick();assert.equal(calls,1);
+const point={coords:{latitude:-27.47,longitude:153.025,accuracy:2000},timestamp:Date.now()};callback(point);assert.equal(a[0],point);assert.equal(b[0],point);assert.equal(a[0].coords.accuracy,2000);
+facade.geolocation.clearWatch(first);assert.equal(cleared.length,0);callback(point);assert.equal(a.length,1);assert.equal(b.length,2);facade.geolocation.clearWatch(second);await tick();assert.equal(cleared.length,1);callback(point);assert.equal(b.length,2);
+let errors=[];permission={location:'denied',coarseLocation:'granted'};facade.geolocation.watchPosition(()=>assert.fail('Coarse permission cannot certify precise tracking'),e=>errors.push(e));await tick();assert.equal(errors[0].code,1);assert.equal(calls,1);assert.equal(facade.diagnostics().subscribers,0);
+permission={location:'granted',coarseLocation:'granted'};let resolve;const delayed=createLocationFacade({...plugin,watchPosition:async(o,cb)=>{callback=cb;return await new Promise(r=>resolve=r);}},{ensureEnabled:async()=>{}});let received=0;const id=delayed.geolocation.watchPosition(()=>received++);await tick();delayed.geolocation.clearWatch(id);resolve('late');await tick();callback(point);assert.equal(received,0);assert.ok(cleared.includes('late'));
+let ensureResolve;const setup=createLocationFacade(plugin,{ensureEnabled:()=>new Promise(r=>ensureResolve=r)});const startCalls=calls;const sid=setup.geolocation.watchPosition(()=>{});setup.geolocation.clearWatch(sid);ensureResolve();await tick();assert.equal(calls,startCalls);
+on=false;facade.geolocation.watchPosition(()=>assert.fail('No acquisition in background'),e=>errors.push(e));await tick();assert.equal(calls,startCalls);assert.equal(facade.diagnostics().subscribers,0);
+console.log('PASS: one native watch, exact device accuracy retained, subscriber clear, final clear, late callback rejection, approximate permission rejection, async registration cancellation, cancellation during settings, foreground-only start.');

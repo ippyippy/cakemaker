@@ -35,10 +35,16 @@ public class NativeMapTest {
   waitFor("!window.__fmnReloadPending&&document.readyState==='complete'&&!!(window.FMNNativeLocation&&window.FMNJourneyApp&&window.FMNLiveLocation&&document.getElementById('recenterBtn'))",45);
  }
  private void tap(String selector)throws Exception{
-  waitFor("!!document.querySelector("+JSONObject.quote(selector)+")",15);
-  JSONObject r=new JSONObject(json("(()=>{const e=document.querySelector("+JSONObject.quote(selector)+");if(!e)return {};e.scrollIntoView({block:'nearest'});const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2,w:innerWidth}})()"));
-  assertTrue("Missing control "+selector,r.has("x"));final int[] point=new int[2];
-  scenario.onActivity(a->{WebView w=a.getBridge().getWebView();int[] p=new int[2];w.getLocationOnScreen(p);try{double scale=(w.getWidth()-w.getPaddingLeft()-w.getPaddingRight())/r.getDouble("w");point[0]=(int)(p[0]+w.getPaddingLeft()+r.getDouble("x")*scale);point[1]=(int)(p[1]+w.getPaddingTop()+r.getDouble("y")*scale);}catch(Exception e){throw new RuntimeException(e);}});
+  String quoted=JSONObject.quote(selector);waitFor("!!document.querySelector("+quoted+")",15);
+  run("document.querySelector("+quoted+").scrollIntoView({block:'nearest',behavior:'instant'})");
+  JSONObject last=null,r=null;int stable=0;
+  for(int i=0;i<90;i++){
+   r=new JSONObject(json("(()=>{const e=document.querySelector("+quoted+");if(!e)return {};const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;return {x,y,w:innerWidth,hit:r.width>0&&r.height>0&&x>0&&x<innerWidth&&y>0&&y<innerHeight&&e.contains(document.elementFromPoint(x,y))}})()"));
+   if(r.optBoolean("hit")&&last!=null&&Math.abs(r.getDouble("x")-last.optDouble("x",-1000))<0.5&&Math.abs(r.getDouble("y")-last.optDouble("y",-1000))<0.5)stable++;else stable=0;
+   if(stable>=3)break;last=r;SystemClock.sleep(100);
+  }
+  assertTrue("Control is covered or still moving: "+selector,stable>=3);final JSONObject rectangle=r;final int[] point=new int[2];
+  scenario.onActivity(a->{WebView w=a.getBridge().getWebView();int[] p=new int[2];w.getLocationOnScreen(p);try{double scale=(w.getWidth()-w.getPaddingLeft()-w.getPaddingRight())/rectangle.getDouble("w");point[0]=(int)(p[0]+w.getPaddingLeft()+rectangle.getDouble("x")*scale);point[1]=(int)(p[1]+w.getPaddingTop()+rectangle.getDouble("y")*scale);}catch(Exception e){throw new RuntimeException(e);}});
   assertTrue("Control outside screen",point[0]>=0&&point[0]<device.getDisplayWidth()&&point[1]>=0&&point[1]<device.getDisplayHeight());device.click(point[0],point[1]);
  }
  private File dir(){File d=new File(InstrumentationRegistry.getInstrumentation().getTargetContext().getExternalFilesDir(null),"native-map-qa");d.mkdirs();return d;}
@@ -73,7 +79,6 @@ public class NativeMapTest {
    tap("#recenterBtn");waitFor("FMNLiveLocation.getState().following",30);
    scenario.moveToState(Lifecycle.State.CREATED);SystemClock.sleep(2000);scenario.moveToState(Lifecycle.State.RESUMED);waitFor("!FMNLiveLocation.getState().following&&FMNNativeLocation.diagnostics().subscribers===0",15);
    reload();assertEquals("250",json("JSON.parse(localStorage.getItem('fdPrefs')).tank"));assertEquals("4.2",json("JSON.parse(localStorage.getItem('fdPrefs')).truck.height"));screen("04-return-and-preferences");
-   // Turn Location OFF in the disposable emulator. Recovery must use the actual system consent UI, not an ADB grant.
    device.executeShellCommand("cmd location set-location-enabled false");
    waitFor("!!document.getElementById('followToggle')&&!!FMNJourneyApp.getMap()",15);tap("#recenterBtn");
    UiObject2 message=device.wait(Until.findObject(By.res("com.google.android.gms","message")),20000);assertNotNull("Expected Google system location-settings resolution",message);assertTrue(message.getText().toLowerCase().contains("location"));

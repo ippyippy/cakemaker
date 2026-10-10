@@ -6,12 +6,12 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: fillmenow-direct-native-map
+  group: fillmenow-direct-native-map-v2
   cancel-in-progress: true
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 20
     permissions:
       contents: write
     steps:
@@ -64,8 +64,8 @@ jobs:
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd --force -n fmn-direct -k 'system-images;android-35;google_apis;x86_64' --device pixel_6
           nohup "$ANDROID_HOME/emulator/emulator" -avd fmn-direct -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -accel on > /tmp/fmn-direct-emulator.log 2>&1 &
           timeout 180 adb wait-for-device
-          for i in $(seq 1 90); do test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1 && break; sleep 2; done
-          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1
+          for i in $(seq 1 90); do test "$(timeout 5 adb shell getprop sys.boot_completed | tr -d '\r')" = 1 && break; sleep 2; done
+          test "$(timeout 5 adb shell getprop sys.boot_completed | tr -d '\r')" = 1
           adb shell input keyevent 82
           adb shell settings put global window_animation_scale 0
           adb shell settings put global transition_animation_scale 0
@@ -107,12 +107,13 @@ jobs:
           retention-days: 7
       - name: Preserve test screenshots and diagnostics
         if: always()
+        timeout-minutes: 1
         run: |
           mkdir -p direct-native-qa
-          adb pull /sdcard/Android/data/au.com.fillmenow.app/files/native-map-qa direct-native-qa/ || true
+          timeout 15 adb pull /sdcard/Android/data/au.com.fillmenow.app/files/native-map-qa direct-native-qa/ || true
           cp android/app/build/reports/lint-results-release.* direct-native-qa/ 2>/dev/null || true
           cp /tmp/fmn-direct-emulator.log direct-native-qa/ 2>/dev/null || true
-          adb logcat -d -t 1000 > direct-native-qa/emulator-log.txt 2>/dev/null || true
+          timeout 15 adb logcat -d -t 1000 > direct-native-qa/emulator-log.txt 2>/dev/null || true
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -121,4 +122,5 @@ jobs:
           retention-days: 7
       - name: Stop emulator
         if: always()
-        run: adb emu kill || true
+        timeout-minutes: 1
+        run: timeout 10 adb emu kill || true

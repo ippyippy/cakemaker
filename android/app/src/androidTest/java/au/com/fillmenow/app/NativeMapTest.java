@@ -30,8 +30,10 @@ public class NativeMapTest {
  private void waitFor(String expression,int seconds)throws Exception{long end=SystemClock.elapsedRealtime()+seconds*1000L;String last="";do{try{last=json(expression);if("true".equals(last))return;}catch(Exception ignored){}SystemClock.sleep(300);}while(SystemClock.elapsedRealtime()<end);fail("Condition not reached: "+expression+" ("+last+")");}
  private void tap(String selector)throws Exception{
   JSONObject r=new JSONObject(json("(()=>{const e=document.querySelector("+JSONObject.quote(selector)+");if(!e)return {};e.scrollIntoView({block:'nearest'});const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2,w:innerWidth}})()"));
-  assertTrue("Missing control "+selector,r.has("x"));
-  scenario.onActivity(a->{WebView w=a.getBridge().getWebView();int[] p=new int[2];w.getLocationOnScreen(p);try{double scale=(w.getWidth()-w.getPaddingLeft()-w.getPaddingRight())/r.getDouble("w");device.click((int)(p[0]+w.getPaddingLeft()+r.getDouble("x")*scale),(int)(p[1]+w.getPaddingTop()+r.getDouble("y")*scale));}catch(Exception e){throw new RuntimeException(e);}});
+  assertTrue("Missing control "+selector,r.has("x"));final int[] point=new int[2];
+  scenario.onActivity(a->{WebView w=a.getBridge().getWebView();int[] p=new int[2];w.getLocationOnScreen(p);try{double scale=(w.getWidth()-w.getPaddingLeft()-w.getPaddingRight())/r.getDouble("w");point[0]=(int)(p[0]+w.getPaddingLeft()+r.getDouble("x")*scale);point[1]=(int)(p[1]+w.getPaddingTop()+r.getDouble("y")*scale);}catch(Exception e){throw new RuntimeException(e);}});
+  assertTrue("Control outside screen",point[0]>=0&&point[0]<device.getDisplayWidth()&&point[1]>=0&&point[1]<device.getDisplayHeight());
+  device.click(point[0],point[1]);
  }
  private void screen(String name){File dir=new File(InstrumentationRegistry.getInstrumentation().getTargetContext().getExternalFilesDir(null),"native-map-qa");dir.mkdirs();device.takeScreenshot(new File(dir,name+".png"));}
  private void grantDialog(boolean allow)throws Exception{
@@ -50,7 +52,6 @@ public class NativeMapTest {
    waitFor("!!(window.FMNLiveLocation&&document.getElementById('followToggle')&&window.FMNJourneyApp.getMap())",40);
    assertEquals("\"https://localhost\"",json("location.origin"));
    assertEquals("\"android\"",json("Capacitor.getPlatform()"));
-   // Negative control: browser GPS is unusable. The installed app must still follow native positions.
    run("Object.defineProperty(navigator,'geolocation',{configurable:true,value:{watchPosition(){throw Error('Browser GPS forbidden in native test')},getCurrentPosition(){throw Error('Browser GPS forbidden in native test')},clearWatch(){throw Error('Browser GPS forbidden in native test')}}})");
    tap("#recenterBtn");grantDialog(false);
    waitFor("!!document.querySelector('#nativeLocationDialog[open]')",15);

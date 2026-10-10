@@ -73,7 +73,14 @@ public class NativeMapTest {
    tap("#recenterBtn");waitFor("FMNLiveLocation.getState().following",30);
    scenario.moveToState(Lifecycle.State.CREATED);SystemClock.sleep(2000);scenario.moveToState(Lifecycle.State.RESUMED);waitFor("!FMNLiveLocation.getState().following&&FMNNativeLocation.diagnostics().subscribers===0",15);
    reload();assertEquals("250",json("JSON.parse(localStorage.getItem('fdPrefs')).tank"));assertEquals("4.2",json("JSON.parse(localStorage.getItem('fdPrefs')).truck.height"));screen("04-return-and-preferences");
-   System.out.println("PASS: actual Android denial/precise approval; browser GPS disabled; native updates move both map origin and camera; Stop and one-shot Search use same provider; foreground stop; preferences retained. Emulator positions, not physical reception.");
+   // Turn Location OFF in the disposable emulator. Recovery must use the actual system consent UI, not an ADB grant.
+   device.executeShellCommand("cmd location set-location-enabled false");
+   waitFor("!!document.getElementById('followToggle')&&!!FMNJourneyApp.getMap()",15);tap("#recenterBtn");
+   UiObject2 message=device.wait(Until.findObject(By.res("com.google.android.gms","message")),20000);assertNotNull("Expected Google system location-settings resolution",message);assertTrue(message.getText().toLowerCase().contains("location"));
+   UiObject2 approval=device.findObject(By.res("android","button1"));assertNotNull("System Location-on approval button missing",approval);screen("05-native-system-location-on");approval.click();
+   waitFor("FMNLiveLocation.getState().following&&FMNNativeLocation.diagnostics().updates>=2",40);screen("06-map-after-system-location-recovery");
+   tap("#followToggle");waitFor("FMNNativeLocation.diagnostics().subscribers===0&&!FMNLiveLocation.getState().following",10);
+   System.out.println("PASS: actual Android denial/precise approval; browser GPS disabled; native updates move both map origin and camera; Stop and one-shot Search use same provider; foreground stop; preferences retained; genuine system Location-on consent returns to native map following. Emulator positions, not physical reception.");
   }catch(Throwable t){screen("failure");try(FileOutputStream f=new FileOutputStream(new File(dir(),"failure-state.json"))){f.write(json("({ready:document.readyState,page:document.body?.dataset.page,onboarded:localStorage.getItem('fmnOnboarded'),controls:!!document.getElementById('recenterBtn'),native:window.FMNNativeLocation?.diagnostics(),follow:window.FMNLiveLocation?.getState(),onboarding:!!document.querySelector('#fmnOnboard.open')})").getBytes(StandardCharsets.UTF_8));}catch(Exception ignored){}throw t;}finally{if(scenario!=null)scenario.close();}
  }
 }

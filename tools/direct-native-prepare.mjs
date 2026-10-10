@@ -42,6 +42,9 @@ write('android/app/proguard-rules.pro',`-keep class au.com.fillmenow.app.MainAct
 -keep class com.getcapacitor.** { *; }
 -keep @com.getcapacitor.annotation.CapacitorPlugin class * { *; }
 -keepclassmembers class * { @com.getcapacitor.PluginMethod <methods>; }
+# The separate instrumentation APK calls these shared dependency APIs. Preserve them in the actual delivered release too.
+-keep class androidx.** { *; }
+-keep class kotlin.** { *; }
 `);
 write('android/app/src/main/AndroidManifest.xml',`<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
